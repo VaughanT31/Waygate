@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launcher mock-up: World of Warcraft, Midnight theme</title>
+<!-- Concept mock-up of the launcher's WoW page in the Midnight theme. All numbers are illustrative. -->
+<style>
+  @font-face { font-family: "Cinzel"; src: url("fonts/Cinzel.ttf"); font-weight: 400 900; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter.ttf"); font-weight: 100 900; }
+
+  :root {
+    /* Midnight theme pack */
+    --void-0: #05030b;
+    --void-1: #0d0820;
+    --void-2: #1a0f3a;
+    --violet: #8b5cf6;
+    --violet-soft: rgba(139, 92, 246, .22);
+    --arcane: #c4b5fd;
+    --gold: #f2c86b;
+    --gold-hot: #ffe7a8;
+    --gold-deep: #9a6b1e;
+    --text: #efeaff;
+    --dim: #a79fc4;
+    --glass: rgba(18, 11, 40, .62);
+    --glass-line: rgba(196, 181, 253, .16);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--void-0); color: var(--text); font-family: "Inter", sans-serif; }
+
+  /* ---------------- The scene ---------------- */
+  .scene { position: absolute; inset: 0; overflow: hidden; }
+  .sky {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 55% at 62% 30%, rgba(124, 58, 237, .45), transparent 70%),
+      radial-gradient(ellipse 40% 35% at 20% 20%, rgba(59, 130, 246, .18), transparent 70%),
+      radial-gradient(ellipse 90% 60% at 50% 110%, rgba(242, 200, 107, .25), transparent 60%),
+      linear-gradient(180deg, #0a0618 0%, #150b33 45%, #1b0f2e 75%, #2a1630 100%);
+  }
+  /* The void rift: a dark eye ringed with violet light. */
+  .rift { position: absolute; left: 1010px; top: 70px; width: 560px; height: 380px; border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 50%, #020106 0 28%, #160a33 38%, rgba(139, 92, 246, .9) 47%, rgba(196, 181, 253, .55) 50%, rgba(139, 92, 246, .25) 58%, transparent 70%);
+    filter: blur(2px); transform: rotate(-8deg); }
+  .rift::before { content: ""; position: absolute; inset: -60px; border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(139, 92, 246, .35), transparent 65%); filter: blur(30px); }
+  .rift::after { content: ""; position: absolute; left: 34%; top: 30%; width: 32%; height: 40%; border-radius: 50%;
+    background: radial-gradient(ellipse at 45% 40%, rgba(167, 139, 250, .5), transparent 60%); filter: blur(10px); }
+  .tendril { position: absolute; width: 3px; border-radius: 3px; background: linear-gradient(180deg, rgba(196, 181, 253, .7), transparent); filter: blur(1px); transform-origin: top; }
+  /* Sunwell light rising behind the city. */
+  .sunwell { position: absolute; left: 1180px; bottom: 120px; width: 220px; height: 760px;
+    background: linear-gradient(0deg, rgba(255, 231, 168, .55), rgba(242, 200, 107, .12) 55%, transparent);
+    filter: blur(26px); clip-path: polygon(38% 100%, 62% 100%, 100% 0, 0 0); }
+  .city { position: absolute; left: 0; right: 0; bottom: 0; height: 420px; }
+  .mote { position: absolute; border-radius: 50%; background: var(--gold-hot); box-shadow: 0 0 10px 2px rgba(255, 231, 168, .7); }
+  .mote.v { background: var(--arcane); box-shadow: 0 0 10px 2px rgba(196, 181, 253, .7); }
+  .vignette { position: absolute; inset: 0; background:
+      linear-gradient(90deg, rgba(5, 3, 11, .92) 0%, rgba(5, 3, 11, .55) 32%, transparent 55%),
+      linear-gradient(0deg, rgba(5, 3, 11, .95) 0%, rgba(5, 3, 11, .4) 30%, transparent 50%); }
+
+  /* ---------------- Chrome ---------------- */
+  .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 26px;
+    background: rgba(5, 3, 11, .55); border-right: 1px solid var(--glass-line); backdrop-filter: blur(14px); z-index: 5; }
+  .game { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-family: "Cinzel"; font-weight: 900; font-size: 26px; position: relative; }
+  .game.wow { background: radial-gradient(circle at 50% 35%, #3a2a0a, #120a02); color: var(--gold); border: 2px solid var(--gold); box-shadow: 0 0 24px rgba(242, 200, 107, .45); }
+  .game.wow::after { content: ""; position: absolute; left: -18px; top: 12px; bottom: 12px; width: 4px; border-radius: 0 4px 4px 0; background: var(--gold); }
+  .game.ow { background: #1b1630; color: #f5a25d; border: 1px solid #3a3352; font-family: "Inter"; font-size: 22px; }
+  .rail .grow { flex: 1; }
+  .rail .icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--dim); }
+  .rail svg { width: 22px; height: 22px; }
+
+  .top { position: absolute; left: 92px; right: 0; top: 0; height: 84px; display: flex; align-items: center; justify-content: space-between; padding: 0 44px; z-index: 4; }
+  .brand { display: flex; align-items: baseline; gap: 18px; }
+  .brand .wow { font-family: "Cinzel"; font-weight: 700; font-size: 20px; letter-spacing: .32em; color: var(--dim); }
+  .brand .exp { font-family: "Cinzel"; font-weight: 900; font-size: 30px; letter-spacing: .2em;
+    background: linear-gradient(180deg, var(--gold-hot), var(--gold) 55%, var(--gold-deep)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .nav { display: flex; gap: 6px; }
+  .nav a { padding: 10px 18px; border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--dim); letter-spacing: .04em; }
+  .nav a.on { color: var(--text); background: rgba(196, 181, 253, .1); box-shadow: inset 0 -2px 0 var(--gold); }
+  .who { display: flex; align-items: center; gap: 14px; }
+  .pill { padding: 8px 14px; border-radius: 999px; background: var(--glass); border: 1px solid var(--glass-line); font-size: 14px; font-weight: 600; color: var(--dim); }
+  .pill b { color: var(--text); }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; background: conic-gradient(from 200deg, #f97316, #8b5cf6, #3b82f6, #f97316); border: 2px solid rgba(255, 255, 255, .25); position: relative; }
+  .avatar::after { content: ""; position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: #34d399; border: 2px solid var(--void-0); }
+
+  /* ---------------- Hero ---------------- */
+  .hero { position: absolute; left: 160px; top: 170px; width: 820px; z-index: 3; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; letter-spacing: .22em; color: var(--gold); text-transform: uppercase; }
+  .eyebrow .live { width: 9px; height: 9px; border-radius: 50%; background: #34d399; box-shadow: 0 0 12px #34d399; }
+  .hero h1 { margin-top: 18px; font-family: "Cinzel"; font-weight: 900; font-size: 104px; line-height: .95; letter-spacing: .02em;
+    background: linear-gradient(180deg, #ffffff 0%, var(--arcane) 60%, #8f7ad8 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 6px 30px rgba(139, 92, 246, .45)); }
+  .hero h2 { font-family: "Cinzel"; font-weight: 700; font-size: 40px; letter-spacing: .14em; color: var(--gold); margin-top: 6px; }
+  .hero p { margin-top: 22px; font-size: 21px; line-height: 1.55; color: #d6cff0; max-width: 640px; }
+  .links { display: flex; gap: 12px; margin-top: 26px; }
+  .ghost { padding: 12px 20px; border-radius: 12px; font-size: 15px; font-weight: 600; color: var(--text); background: rgba(196, 181, 253, .08); border: 1px solid var(--glass-line); backdrop-filter: blur(8px); }
+
+  /* The Play button: gold rim, void core, sunwell glow. */
+  .play-wrap { position: absolute; left: 160px; top: 690px; display: flex; align-items: center; gap: 22px; z-index: 3; }
+  .play { position: relative; width: 380px; height: 96px; border-radius: 20px; display: grid; place-items: center;
+    font-family: "Cinzel"; font-weight: 900; font-size: 40px; letter-spacing: .28em; color: #1a0f00;
+    background: linear-gradient(180deg, var(--gold-hot), var(--gold) 50%, #d99c35);
+    box-shadow: 0 0 0 2px rgba(255, 231, 168, .6), 0 0 60px rgba(242, 200, 107, .55), 0 20px 50px -10px rgba(0, 0, 0, .8), inset 0 2px 0 rgba(255, 255, 255, .6), inset 0 -6px 0 rgba(120, 70, 10, .35); }
+  .play::before { content: ""; position: absolute; inset: -14px; border-radius: 30px; border: 1px solid rgba(242, 200, 107, .35); }
+  .play-meta { font-size: 15px; color: var(--dim); line-height: 1.7; }
+  .play-meta b { color: var(--text); }
+  .ok { color: #34d399; font-weight: 700; }
+  .cog { width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center; background: var(--glass); border: 1px solid var(--glass-line); color: var(--dim); }
+  .cog svg { width: 26px; height: 26px; }
+
+  /* ---------------- Right column ---------------- */
+  .side { position: absolute; right: 44px; top: 110px; width: 430px; display: flex; flex-direction: column; gap: 18px; z-index: 3; }
+  .card { border-radius: 20px; padding: 20px 22px; background: var(--glass); border: 1px solid var(--glass-line); backdrop-filter: blur(18px);
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .9); }
+  .card h3 { font-size: 13px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); display: flex; justify-content: space-between; }
+  .card h3 span { color: var(--gold); letter-spacing: .04em; text-transform: none; font-weight: 600; }
+  .big { font-family: "Cinzel"; font-weight: 700; font-size: 38px; margin-top: 8px; color: var(--text); }
+  .big small { font-family: "Inter"; font-size: 16px; color: var(--dim); font-weight: 500; margin-left: 6px; }
+  .vault { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .vault div { font-size: 12px; color: var(--dim); }
+  .slots { display: flex; gap: 5px; margin-top: 6px; }
+  .slots i { flex: 1; height: 8px; border-radius: 4px; background: rgba(196, 181, 253, .14); }
+  .slots i.on { background: linear-gradient(90deg, var(--violet), var(--arcane)); box-shadow: 0 0 10px rgba(139, 92, 246, .6); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; background: rgba(139, 92, 246, .16); border: 1px solid rgba(139, 92, 246, .35); color: #e2d9ff; }
+  .token { display: flex; align-items: flex-end; justify-content: space-between; }
+  .up { color: #34d399; font-weight: 700; font-size: 15px; }
+  .spark { width: 150px; height: 46px; }
+  .realm { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 17px; font-weight: 600; }
+  .realm .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #34d399; margin-right: 8px; box-shadow: 0 0 10px #34d399; }
+  .realm small { color: var(--dim); font-weight: 500; }
+
+  /* ---------------- Bottom: characters and news ---------------- */
+  .bottom { position: absolute; left: 160px; right: 520px; bottom: 40px; z-index: 3; }
+  .label { font-size: 13px; font-weight: 700; letter-spacing: .2em; color: var(--dim); text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .label span { color: var(--gold); letter-spacing: .04em; text-transform: none; font-weight: 600; }
+  .chars { display: flex; gap: 14px; }
+  .char { flex: 1; border-radius: 16px; padding: 14px 16px; background: var(--glass); border: 1px solid var(--glass-line); backdrop-filter: blur(14px); position: relative; overflow: hidden; }
+  .char::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); box-shadow: 0 0 18px var(--c); }
+  .char b { font-size: 18px; display: block; }
+  .char small { font-size: 13px; color: var(--dim); }
+  .char .nums { display: flex; gap: 16px; margin-top: 8px; font-size: 14px; color: var(--dim); }
+  .char .nums em { font-style: normal; color: var(--text); font-weight: 700; }
+
+  .news { position: absolute; right: 44px; bottom: 40px; width: 430px; display: flex; flex-direction: column; gap: 12px; z-index: 3; }
+  .item { display: flex; gap: 14px; align-items: center; border-radius: 16px; padding: 12px; background: var(--glass); border: 1px solid var(--glass-line); backdrop-filter: blur(14px); }
+  .thumb { width: 82px; height: 60px; border-radius: 10px; flex: none; position: relative; overflow: hidden; }
+  .item small { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--gold); text-transform: uppercase; }
+  .item b { display: block; font-size: 15px; line-height: 1.3; margin-top: 3px; }
+
+  .addons { position: absolute; left: 160px; top: 810px; display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--dim); z-index: 3; }
+  .addons b { color: var(--text); }
+  .addons .upd { color: var(--gold); font-weight: 700; }
+
+  .note { position: absolute; left: 110px; bottom: 8px; font-size: 11px; color: rgba(167, 159, 196, .5); z-index: 6; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="sky"></div>
+  <div class="rift"></div>
+  <div id="tendrils"></div>
+  <div class="sunwell"></div>
+  <svg class="city" viewBox="0 0 1920 420" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1236"/><stop offset="1" stop-color="#07040f"/></linearGradient>
+      <linearGradient id="stone2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#120b26"/><stop offset="1" stop-color="#05030b"/></linearGradient>
+    </defs>
+    <!-- far spires -->
+    <path fill="url(#stone)" opacity=".75" d="M0 330 L120 330 L140 250 L160 330 L300 330 L330 200 L345 120 L360 200 L390 330 L560 330 L585 230 L600 160 L615 230 L640 330 L820 330 L850 260 L870 330 L1010 330 L1040 210 L1060 90 L1080 210 L1110 330 L1150 330 L1170 240 L1190 330 L1300 330 L1330 180 L1350 60 L1370 180 L1400 330 L1520 330 L1540 250 L1560 330 L1700 330 L1730 200 L1745 130 L1760 200 L1790 330 L1920 330 L1920 420 L0 420 Z"/>
+    <!-- near city -->
+    <path fill="url(#stone2)" d="M0 380 L80 380 L95 330 L110 290 L125 330 L140 380 L260 380 L280 340 L300 380 L470 380 L490 310 L505 250 L520 310 L540 380 L700 380 L720 350 L740 380 L900 380 L925 300 L945 220 L965 300 L990 380 L1130 380 L1150 330 L1170 380 L1260 380 L1285 290 L1300 200 L1315 290 L1340 380 L1480 380 L1500 340 L1520 380 L1640 380 L1665 300 L1680 240 L1695 300 L1720 380 L1920 380 L1920 420 L0 420 Z"/>
+    <!-- lit windows -->
+    <g fill="#ffe7a8">
+      <circle cx="505" cy="300" r="2.5"/><circle cx="505" cy="330" r="2"/><circle cx="945" cy="270" r="2.5"/><circle cx="945" cy="310" r="2"/>
+      <circle cx="1300" cy="250" r="2.5"/><circle cx="1300" cy="300" r="2"/><circle cx="1680" cy="290" r="2.5"/><circle cx="110" cy="320" r="2"/>
+      <circle cx="1060" cy="190" r="2" opacity=".6"/><circle cx="1350" cy="150" r="2" opacity=".6"/><circle cx="345" cy="180" r="2" opacity=".6"/>
+    </g>
+  </svg>
+  <div id="motes"></div>
+  <div class="vignette"></div>
+</div>
+
+<nav class="rail">
+  <div class="game wow">W</div>
+  <div class="game ow">OW</div>
+  <div class="grow"></div>
+  <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></div>
+  <div style="height:22px"></div>
+</nav>
+
+<header class="top">
+  <div class="brand"><span class="wow">WORLD OF WARCRAFT</span><span class="exp">MIDNIGHT</span></div>
+  <div class="nav"><a class="on">Home</a><a>Characters</a><a>Mythic+</a><a>Addons</a><a>Patch notes</a></div>
+  <div class="who"><span class="pill">EU | <b>WoW2</b></span><span class="pill"><b>Eggie</b></span><span class="avatar"></span></div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow"><span class="live"></span>Content update 12.1.5 | Live now</div>
+  <h1>MIDNIGHT</h1>
+  <h2>12.1.5</h2>
+  <p>The new content update is live. Hallow's End has also returned to Azeroth with frights, delights and haunting rewards until early November.</p>
+  <div class="links"><span class="ghost">Read the patch notes</span><span class="ghost">Hallow's End guide</span><span class="ghost">Housing tour</span></div>
+</section>
+
+<div class="play-wrap">
+  <div class="play">PLAY</div>
+  <div class="play-meta"><span class="ok">Up to date</span><br>Version <b>12.1.5.70529</b><br>Retail | EU</div>
+  <div class="cog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></div>
+</div>
+
+<div class="addons"><b>Addons</b> | 7 up to date | <span class="upd">Auction Coach 0.19.1 ready to update</span></div>
+
+<aside class="side">
+  <div class="card">
+    <h3>Weekly reset <span>Wed 07:00</span></h3>
+    <div class="big">5d 14h<small>22m left</small></div>
+    <div class="vault">
+      <div>Raid 2/3<div class="slots"><i class="on"></i><i class="on"></i><i></i></div></div>
+      <div>Dungeons 3/3<div class="slots"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+      <div>World 1/3<div class="slots"><i class="on"></i><i></i><i></i></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Mythic+ this week <span>Season 2</span></h3>
+    <div class="chips"><span class="chip">Tyrannical</span><span class="chip">Xal'atath's Bargain</span><span class="chip">Challenger's Peril</span></div>
+  </div>
+  <div class="card">
+    <h3>WoW Token <span>EU</span></h3>
+    <div class="token">
+      <div class="big">248,910<small>gold</small></div>
+      <div style="text-align:right"><svg class="spark" viewBox="0 0 150 46"><polyline fill="none" stroke="#34d399" stroke-width="2.5" points="0,38 18,34 34,36 52,28 70,30 88,22 106,24 124,14 150,8"/></svg><div class="up">+2.1% today</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Realm</h3>
+    <div class="realm"><span><span class="dot"></span>Silvermoon</span><small>Online | Medium</small></div>
+  </div>
+</aside>
+
+<section class="bottom">
+  <div class="label">Your characters <span>Synced 4 min ago</span></div>
+  <div class="chars">
+    <div class="char" style="--c:#C69B6D"><b>Zedoax</b><small>Arms Warrior</small><div class="nums"><span>iLvl <em>701</em></span><span>M+ <em>3,149</em></span></div></div>
+    <div class="char" style="--c:#3FC7EB"><b>Frostzed</b><small>Frost Mage</small><div class="nums"><span>iLvl <em>688</em></span><span>M+ <em>2,410</em></span></div></div>
+    <div class="char" style="--c:#F48CBA"><b>Lightzed</b><small>Holy Paladin</small><div class="nums"><span>iLvl <em>679</em></span><span>M+ <em>1,980</em></span></div></div>
+  </div>
+</section>
+
+<aside class="news">
+  <div class="item"><div class="thumb" style="background:radial-gradient(circle at 30% 40%,#f97316,#4c1d95 70%)"></div><div><small>Limited-time event</small><b>Hallow's End brings frights, delights and haunting rewards</b></div></div>
+  <div class="item"><div class="thumb" style="background:radial-gradient(circle at 60% 40%,#a78bfa,#1e1b4b 70%)"></div><div><small>Patch notes</small><b>Midnight 12.1.5: everything that changed</b></div></div>
+  <div class="item"><div class="thumb" style="background:radial-gradient(circle at 50% 50%,#f2c86b,#3b1d0a 70%)"></div><div><small>Mythic+</small><b>Season 2 cutoffs: top 1% is now 3,778 on EU</b></div></div>
+</aside>
+
+<div class="note">Concept mock-up | Midnight theme | numbers are illustrative</div>
+
+<script>
+  // Fixed seed so the mock-up looks the same every time.
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const motes = document.getElementById("motes");
+  for (let i = 0; i < 70; i++) {
+    const m = document.createElement("div");
+    m.className = "mote" + (rand() < 0.45 ? " v" : "");
+    const s = 1.5 + rand() * 3.5;
+    Object.assign(m.style, { left: `${600 + rand() * 1300}px`, top: `${80 + rand() * 820}px`, width: `${s}px`, height: `${s}px`, opacity: 0.35 + rand() * 0.6 });
+    motes.appendChild(m);
+  }
+  const tendrils = document.getElementById("tendrils");
+  for (let i = 0; i < 9; i++) {
+    const t = document.createElement("div");
+    t.className = "tendril";
+    Object.assign(t.style, { left: `${1150 + rand() * 300}px`, top: `${300 + rand() * 60}px`, height: `${120 + rand() * 220}px`, transform: `rotate(${-25 + rand() * 50}deg)`, opacity: 0.25 + rand() * 0.5 });
+    tendrils.appendChild(t);
+  }
+</script>
+</body>
+</html>
