@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Waygate mock-up v2: World of Warcraft, Silvermoon</title>
+<!--
+  Concept v2: the in-game Silvermoon capture as the background (assets/silvermoon-loop.mp4, a seamless
+  loop), flat panels, one display font for the title only. Numbers are illustrative.
+-->
+<style>
+  @font-face { font-family: "Cinzel"; src: url("fonts/Cinzel.ttf"); font-weight: 400 900; }
+  @font-face { font-family: "Inter"; src: url("fonts/Inter.ttf"); font-weight: 100 900; }
+
+  :root {
+    /* Silvermoon theme: twilight violet from the sky, Sunwell gold from the beam. */
+    --ink: #0b0913;
+    --panel: rgba(12, 10, 22, .78);
+    --line: rgba(255, 255, 255, .09);
+    --text: #f3efe7;
+    --soft: #cdc6de;
+    --dim: #948daa;
+    --gold: #e9b44c;
+    --gold-text: #ecc679;
+    --green: #5fd39a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); color: var(--text);
+    font-family: "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* Background: the capture, with darkening only where the text sits. */
+  .bg { position: absolute; inset: 0; }
+  .bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bg::after { content: ""; position: absolute; inset: 0; background:
+      linear-gradient(90deg, rgba(9, 7, 17, .9) 0%, rgba(9, 7, 17, .72) 24%, rgba(9, 7, 17, .2) 44%, transparent 58%),
+      linear-gradient(0deg, rgba(9, 7, 17, .85) 0%, rgba(9, 7, 17, .35) 16%, transparent 32%),
+      linear-gradient(180deg, rgba(9, 7, 17, .55) 0%, transparent 12%); }
+
+  /* Game rail */
+  .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 76px; background: rgba(8, 7, 14, .92); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; padding-top: 18px; gap: 12px; z-index: 3; }
+  .game { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; font-size: 15px; color: var(--soft); background: #17141f; border: 1px solid var(--line); position: relative; }
+  .game.on { color: #1a1206; background: var(--gold); border-color: var(--gold); font-family: "Cinzel"; font-size: 22px; }
+  .game.on::before { content: ""; position: absolute; left: -16px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--gold); }
+  .rail .spacer { flex: 1; }
+  .rail svg { width: 20px; height: 20px; color: var(--dim); margin-bottom: 20px; }
+
+  /* Top bar */
+  .top { position: absolute; left: 76px; right: 0; top: 0; height: 68px; display: flex; align-items: center; padding: 0 60px; gap: 56px; z-index: 3; }
+  .wordmark { font-size: 13px; font-weight: 600; letter-spacing: .32em; color: var(--soft); }
+  .nav { display: flex; gap: 34px; font-size: 15px; font-weight: 500; color: var(--dim); }
+  .nav span.on { color: var(--text); box-shadow: 0 2px 0 var(--gold); padding-bottom: 6px; }
+  .account { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 14px; color: var(--dim); }
+  .account b { color: var(--text); font-weight: 600; }
+  .account .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; }
+
+  /* Left column */
+  .intro { position: absolute; left: 136px; top: 214px; width: 560px; z-index: 2; }
+  .kicker { font-size: 13px; font-weight: 600; letter-spacing: .24em; color: var(--gold-text); text-transform: uppercase; }
+  .intro h1 { font-family: "Cinzel"; font-weight: 600; font-size: 100px; line-height: 1; letter-spacing: .015em; margin-top: 16px; color: var(--text);
+    text-shadow: 0 2px 24px rgba(0, 0, 0, .35); }
+  .intro p { margin-top: 20px; font-size: 18px; line-height: 1.6; color: var(--soft); max-width: 470px; }
+  .play-row { display: flex; align-items: center; gap: 12px; margin-top: 38px; }
+  .play { width: 260px; height: 62px; border-radius: 8px; background: var(--gold); color: #1a1206; display: grid; place-items: center;
+    font-size: 19px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 10px 30px -8px rgba(233, 180, 76, .55); }
+  .opt { width: 62px; height: 62px; border-radius: 8px; background: rgba(20, 17, 30, .85); border: 1px solid var(--line); display: grid; place-items: center; color: var(--soft); }
+  .opt svg { width: 20px; height: 20px; }
+  .ver { margin-top: 14px; font-size: 13px; color: var(--dim); }
+  .ver i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 8px; font-style: normal; }
+  .links { display: flex; gap: 28px; margin-top: 30px; font-size: 15px; font-weight: 500; color: var(--soft); }
+  .links span { border-bottom: 1px solid rgba(236, 198, 121, .45); padding-bottom: 3px; }
+
+  /* Characters */
+  .chars { position: absolute; left: 136px; bottom: 132px; width: 460px; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .chars h4, .news h4 { font-size: 11px; font-weight: 600; letter-spacing: .22em; color: var(--dim); padding: 14px 18px 8px; display: flex; justify-content: space-between; }
+  .chars h4 span, .news h4 span { letter-spacing: 0; font-weight: 500; }
+  .char { display: grid; grid-template-columns: 4px 1fr auto auto; gap: 14px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line); font-size: 15px; }
+  .char i { height: 22px; border-radius: 2px; background: var(--c); }
+  .char small { color: var(--dim); font-size: 13px; margin-left: 8px; }
+  .char .n { font-variant-numeric: tabular-nums; color: var(--soft); width: 64px; text-align: right; }
+  .char .n.score { color: var(--text); font-weight: 600; }
+
+  /* News */
+  .news { position: absolute; right: 60px; bottom: 132px; width: 400px; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .item { padding: 11px 18px; border-top: 1px solid var(--line); }
+  .item small { font-size: 11px; font-weight: 600; letter-spacing: .14em; color: var(--gold-text); text-transform: uppercase; }
+  .item b { display: block; font-size: 15px; font-weight: 500; margin-top: 3px; line-height: 1.35; }
+
+  /* This week bar */
+  .week { position: absolute; left: 76px; right: 0; bottom: 0; height: 104px; z-index: 3; display: grid; grid-template-columns: repeat(5, 1fr);
+    background: rgba(8, 7, 14, .9); border-top: 1px solid var(--line); padding: 0 40px 0 60px; }
+  .cell { padding: 20px 24px; border-left: 1px solid var(--line); }
+  .cell:first-child { border-left: 0; padding-left: 0; }
+  .cell label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .22em; color: var(--dim); }
+  .cell .v { font-size: 24px; font-weight: 600; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .cell .s { font-size: 13px; color: var(--dim); margin-top: 3px; }
+  .cell .up { color: var(--green); }
+  .bars { display: flex; gap: 4px; margin-top: 12px; width: 180px; }
+  .bars i { flex: 1; height: 5px; border-radius: 2px; background: rgba(255, 255, 255, .12); }
+  .bars i.on { background: var(--gold); }
+
+  .credit { position: absolute; right: 60px; bottom: 118px; transform: translateY(100%); z-index: 2; }
+  .caption { position: absolute; right: 64px; top: 84px; font-size: 12px; color: rgba(243, 239, 231, .55); letter-spacing: .04em; z-index: 2; }
+  .note { position: absolute; left: 96px; bottom: 112px; font-size: 11px; color: rgba(148, 141, 170, .5); z-index: 2; display: none; }
+</style>
+</head>
+<body>
+<div class="bg">
+  <video autoplay muted loop playsinline poster="../assets/silvermoon-poster.jpg" src="../assets/silvermoon-loop.mp4"></video>
+</div>
+
+<nav class="rail">
+  <div class="game on">W</div>
+  <div class="game">OW</div>
+  <div class="spacer"></div>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+</nav>
+
+<header class="top">
+  <span class="wordmark">WORLD OF WARCRAFT</span>
+  <div class="nav"><span class="on">Home</span><span>Characters</span><span>Mythic+</span><span>Addons</span><span>News</span></div>
+  <div class="account"><span>EU | WoW2</span><b><span class="dot"></span>Eggie</b></div>
+</header>
+
+<div class="caption">Silvermoon, captured in game</div>
+
+<section class="intro">
+  <div class="kicker">Silvermoon | Content update 12.1.5</div>
+  <h1>Midnight</h1>
+  <p>The update is live, and Hallow's End runs until early November.</p>
+  <div class="play-row">
+    <div class="play">Play</div>
+    <div class="opt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
+  </div>
+  <div class="ver"><i></i>Up to date | 12.1.5.70529 | Retail</div>
+  <div class="links"><span>Patch notes</span><span>Hallow's End</span><span>Housing tour</span></div>
+</section>
+
+<section class="chars">
+  <h4>CHARACTERS <span>iLvl | M+</span></h4>
+  <div class="char" style="--c:#C69B6D"><i></i><span>Zedoax<small>Arms Warrior</small></span><span class="n">701</span><span class="n score">3,149</span></div>
+  <div class="char" style="--c:#3FC7EB"><i></i><span>Frostzed<small>Frost Mage</small></span><span class="n">688</span><span class="n score">2,410</span></div>
+  <div class="char" style="--c:#F48CBA"><i></i><span>Lightzed<small>Holy Paladin</small></span><span class="n">679</span><span class="n score">1,980</span></div>
+</section>
+
+<section class="news">
+  <h4>NEWS <span>World of Warcraft</span></h4>
+  <div class="item"><small>Event</small><b>Hallow's End brings frights, delights and haunting rewards</b></div>
+  <div class="item"><small>Patch notes</small><b>Midnight 12.1.5: everything that changed</b></div>
+  <div class="item"><small>Mythic+</small><b>Season 2 cutoffs: top 1% is 3,778 on EU</b></div>
+</section>
+
+<footer class="week">
+  <div class="cell"><label>WEEKLY RESET</label><div class="v">5d 14h 22m</div><div class="s">Wednesday 07:00</div></div>
+  <div class="cell"><label>GREAT VAULT</label><div class="v">6 / 9</div><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+  <div class="cell"><label>MYTHIC+ THIS WEEK</label><div class="v">Tyrannical</div><div class="s">Season 2</div></div>
+  <div class="cell"><label>WOW TOKEN</label><div class="v">248,910 g</div><div class="s"><span class="up">+2.1%</span> today</div></div>
+  <div class="cell"><label>REALM</label><div class="v">Silvermoon</div><div class="s"><span class="up">Online</span> | Medium</div></div>
+</footer>
+</body>
+</html>

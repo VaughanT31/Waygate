@@ -16,7 +16,7 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
   ambient sound), picked by the game's current version.
 - **What matters this week:** the weekly reset countdown and Great Vault, Mythic+ affixes, the WoW
   Token price and your realm's status.
-- **Your characters:** item level and Mythic+ score.
+- **Your characters:** item level and Mythic+ score, from Raider.IO by the names you type in.
 - **News for your game only:** patch notes and events, no ads for other games.
 - **Your addons:** installed versions and whether an update is out.
 
@@ -26,7 +26,20 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
   look like anything.
 - Battle.net still has to run (it handles your login), but you don't have to look at it. Waygate
   starts games with Battle.net's own launch command and never modifies Battle.net or the games.
-- Game data comes from Blizzard's official API and Raider.IO.
+- Game data is public only: Raider.IO and public game data such as affixes and the token price.
+
+## Your account stays yours
+
+Waygate never touches your Battle.net account. There's nothing to log in to, so there's nothing to steal.
+
+- **No login.** Waygate never asks for your Battle.net email, password or authenticator, and has no
+  "connect your account" button. You log in to Battle.net itself, the same as always.
+- **Doesn't read Battle.net's files.** No passwords, tokens, cookies, settings or caches. Your installed
+  games come from the standard Windows list of installed programs.
+- **No hooks or injection.** It doesn't read memory, inject into, or automate Battle.net or the game.
+  It starts a game with Battle.net's own launch command, the same thing a desktop shortcut does.
+- **Read only.** It reads the game version and your addons' version numbers, and never writes to the
+  game folder.
 
 ## Requirements
 
