@@ -26,7 +26,9 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
   look like anything.
 - Battle.net still has to run (it handles your login), but you don't have to look at it. Waygate
   starts games with Battle.net's own launch command and never modifies Battle.net or the games.
-- Game data is public only: Raider.IO and public game data such as affixes and the token price.
+- Game data is public only: Blizzard's public patch server (to tell you when a game update is out),
+  Blizzard's posts on the official forums (news), Raider.IO, and public game data such as affixes and
+  the token price. No keys or accounts.
 
 ## Your account stays yours
 

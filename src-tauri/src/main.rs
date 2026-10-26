@@ -1,10 +1,13 @@
 // No console window behind the app in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod addons;
 mod games;
 mod launch;
+mod online;
 mod settings;
 
+use serde::Serialize;
 use std::path::Path;
 
 #[tauri::command]
@@ -25,6 +28,14 @@ fn play(uid: String, product: Option<String>) -> Result<(), String> {
     launch::start(Path::new(&battle_net), code.as_deref())
 }
 
+fn open_in_explorer(target: &str) -> Result<(), String> {
+    std::process::Command::new("explorer")
+        .arg(target)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Couldn't open it: {e}"))
+}
+
 /// Opens a game's install folder in Explorer, looked up again here rather
 /// than taken from the page. Only opens it; nothing in it is touched.
 #[tauri::command]
@@ -34,11 +45,7 @@ fn open_folder(uid: String) -> Result<(), String> {
     if !Path::new(&game.install).is_dir() {
         return Err("The game's folder wasn't found.".into());
     }
-    std::process::Command::new("explorer")
-        .arg(&game.install)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| format!("Couldn't open the folder: {e}"))
+    open_in_explorer(&game.install)
 }
 
 /// Opens one of Waygate's own links in the default browser. Only these
@@ -50,11 +57,91 @@ fn open_link(which: String) -> Result<(), String> {
         "patreon" => "https://www.patreon.com/cw/CtrlShiftZed",
         _ => return Err("Unknown link.".into()),
     };
-    std::process::Command::new("explorer")
-        .arg(url)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| format!("Couldn't open the browser: {e}"))
+    open_in_explorer(url)
+}
+
+/// Opens a news post: only pages on Blizzard's own forums.
+#[tauri::command]
+fn open_news(url: String) -> Result<(), String> {
+    if !online::is_news_url(&url) {
+        return Err("Only Blizzard forum links open from news.".into());
+    }
+    open_in_explorer(&url)
+}
+
+#[derive(Serialize)]
+struct Update {
+    uid: String,
+    game: String,
+    product: String,
+    name: String,
+    region: String,
+    installed: String,
+    latest: Option<String>,
+    update: bool,
+    error: Option<String>,
+}
+
+/// Is a newer version of each installed game out? Compares the game folder
+/// with Blizzard's public patch server, version and build fingerprint.
+#[tauri::command]
+async fn updates() -> Vec<Update> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let found = games::scan();
+        let mut out = Vec::new();
+        for game in &found.games {
+            for f in &game.flavors {
+                let (latest, update, error) = match online::latest_cached(&f.product, &f.region) {
+                    Ok((version, build)) => {
+                        let newer = if !build.is_empty() && !f.build.is_empty() { build != f.build } else { version != f.version };
+                        (Some(version), newer, None)
+                    }
+                    Err(e) => (None, false, Some(e)),
+                };
+                out.push(Update {
+                    uid: game.uid.clone(),
+                    game: game.name.clone(),
+                    product: f.product.clone(),
+                    name: f.name.clone(),
+                    region: f.region.clone(),
+                    installed: f.version.clone(),
+                    latest,
+                    update,
+                    error,
+                });
+            }
+        }
+        out
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Installed WoW addons, per game version.
+#[tauri::command]
+async fn addons() -> Vec<addons::Flavor> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let found = games::scan();
+        let Some(wow) = found.games.iter().find(|g| g.uid == "wow") else { return Vec::new() };
+        let versions: Vec<(String, String)> = wow.flavors.iter().map(|f| (f.product.clone(), f.version.clone())).collect();
+        addons::scan(Path::new(&wow.install), &versions)
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Blizzard news for the installed games, newest first.
+#[tauri::command]
+async fn news() -> Vec<online::NewsItem> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let found = games::scan();
+        let games: Vec<(String, String)> = found.games.iter()
+            .map(|g| (g.uid.clone(), g.flavors.first().map(|f| f.region.clone()).unwrap_or_default()))
+            .collect();
+        online::news(&games)
+    })
+    .await
+    .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -69,7 +156,47 @@ fn save_settings(settings: settings::Settings) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![installed, play, open_folder, open_link, load_settings, save_settings])
+        .invoke_handler(tauri::generate_handler![
+            installed, play, open_folder, open_link, open_news, updates, addons, news, load_settings, save_settings
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Waygate");
+}
+
+#[cfg(test)]
+mod live {
+    use super::*;
+
+    /// Real games and real servers: `cargo test live -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn live_check() {
+        let found = games::scan();
+        for g in &found.games {
+            for f in &g.flavors {
+                println!("{} {} {} installed {} build {}", g.name, f.product, f.region, f.version, f.build);
+                println!("  latest {:?}", online::latest_cached(&f.product, &f.region));
+            }
+        }
+        if let Some(wow) = found.games.iter().find(|g| g.uid == "wow") {
+            let versions: Vec<(String, String)> = wow.flavors.iter().map(|f| (f.product.clone(), f.version.clone())).collect();
+            for fl in addons::scan(Path::new(&wow.install), &versions) {
+                let old = fl.addons.iter().filter(|a| a.out_of_date).count();
+                println!("addons {} {} {:?}: {} addons, {} out of date", fl.product, fl.folder, fl.interface, fl.addons.len(), old);
+                for a in fl.addons.iter().take(6) {
+                    println!("  {} {} {:?} curse {:?} wago {:?} old {}", a.title, a.version, a.folders, a.curse_id, a.wago_id, a.out_of_date);
+                }
+            }
+        }
+        let games: Vec<(String, String)> = found.games.iter()
+            .map(|g| (g.uid.clone(), g.flavors.first().map(|f| f.region.clone()).unwrap_or_default()))
+            .collect();
+        for (uid, region) in &games {
+            println!("forum {uid} {region}: {:?}", online::forum_news(uid, region).map(|v| v.len()));
+            println!("articles {uid} {region}: {:?}", online::articles(uid, region).map(|v| v.len()));
+        }
+        for n in online::news(&games).iter().take(8) {
+            println!("news {} {} | {} | img {:?}", n.uid, &n.date[..10.min(n.date.len())], n.title, n.image.as_deref().map(|i| &i[..40.min(i.len())]));
+        }
+    }
 }

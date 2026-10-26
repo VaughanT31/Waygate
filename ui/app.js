@@ -205,8 +205,182 @@ function homePage() {
       modeRow(game)));
     return panel;
   });
+  const newsList = el("div", { class: "news-list", id: "news-list" });
+  fillNews(newsList);
   return el("div", { class: "home" },
-    el("div", { class: "panels" + (panels.length === 1 ? " single" : "") }, ...panels));
+    el("div", { class: "panels" + (panels.length === 1 ? " single" : "") }, ...panels),
+    el("section", { class: "news", "aria-label": "News" },
+      el("div", { class: "section-head" }, el("h2", {}, "News"), el("span", {}, "Posts from Blizzard for your games")),
+      newsList));
+}
+
+// ---------- News (Blizzard posts on the official forums) ----------
+
+let news = null; // null while loading, [] when there's none or it failed
+
+function fillNews(box) {
+  if (news === null) {
+    box.replaceChildren(el("p", { class: "quiet" }, "Loading news..."));
+    return;
+  }
+  if (!news.length) {
+    box.replaceChildren(el("p", { class: "quiet" }, "News couldn't load right now. It's tried again in a few minutes."));
+    return;
+  }
+  box.replaceChildren(...news.slice(0, 12).map((n) => {
+    const game = installed.games.find((g) => g.uid === n.uid);
+    const theme = game ? themeOf(game) : {};
+    const when = n.date ? new Date(n.date).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "";
+    // The article's own image, or the game's art for posts without one.
+    const art = n.image || theme.poster;
+    const image = el("div", { class: "news-image" + (n.image ? "" : " fallback") });
+    if (art) image.append(el("img", { src: art, alt: "", loading: "lazy", onerror: (e) => e.target.remove() }));
+    return el("button", { class: "news-item", style: accentStyle(theme), title: n.title,
+      onclick: () => invoke("open_news", { url: n.url }).catch(() => {}) },
+      image,
+      el("div", { class: "news-body" },
+        el("div", { class: "news-meta" }, el("span", { class: "badge" }, theme.badge || game?.short || "?"),
+          el("span", {}, game ? game.name : ""), el("span", { class: "when" }, when)),
+        el("b", {}, n.title),
+        n.excerpt ? el("p", {}, n.excerpt) : null));
+  }));
+}
+
+async function loadNews() {
+  try {
+    news = await invoke("news");
+  } catch {
+    news = [];
+  }
+  const box = document.getElementById("news-list");
+  if (box) fillNews(box);
+}
+
+// ---------- Downloads: is a game update out? ----------
+
+let updates = null; // null while checking
+
+function updateCount() {
+  return (updates || []).filter((u) => u.update).length;
+}
+
+function renderCounts() {
+  const n = updateCount();
+  $("count-downloads").hidden = n === 0;
+  $("count-downloads").textContent = String(n);
+}
+
+async function loadUpdates() {
+  try {
+    updates = await invoke("updates");
+  } catch {
+    updates = [];
+  }
+  renderCounts();
+  if (settings.view === "downloads") render();
+}
+
+function downloadsPage() {
+  const rows = updates === null
+    ? [el("p", { class: "quiet pad" }, "Checking for updates...")]
+    : updates.length === 0
+      ? [el("p", { class: "quiet pad" }, "No games to check.")]
+      : updates.map((u) => {
+        const game = installed.games.find((g) => g.uid === u.uid);
+        const theme = game ? themeOf(game) : {};
+        const status = u.error ? el("span", { class: "chip warn" }, "Couldn't check")
+          : u.update ? el("span", { class: "chip hot" }, `Update available: ${u.latest}`)
+            : el("span", { class: "chip ok" }, "Up to date");
+        return el("div", { class: "list-row", style: accentStyle(theme) },
+          el("span", { class: "badge" }, theme.badge || game?.short || "?"),
+          el("div", { class: "grow" }, el("b", {}, u.game === u.name ? u.game : `${u.game} | ${u.name}`),
+            el("small", {}, `Installed ${u.installed}${u.region ? ` | ${u.region}` : ""}`)),
+          status,
+          u.update && installed.battle_net
+            ? el("button", { class: "ghost", onclick: () => invoke("play", { uid: u.uid, product: null }).catch(() => {}) }, "Open Battle.net")
+            : null);
+      });
+  return el("div", { class: "scroll-page" },
+    el("div", { class: "page-head" }, el("h2", {}, "Downloads"),
+      el("p", {}, "Waygate checks Blizzard's public patch server for new game versions. Battle.net does the downloading: when an update is out, open Battle.net to get it.")),
+    el("div", { class: "toolbar" },
+      el("button", { class: "ghost", onclick: () => { updates = null; render(); loadUpdates(); } }, "Check again")),
+    el("div", { class: "list" }, ...rows));
+}
+
+// ---------- Addons: what's installed, read only ----------
+
+let addonData = null; // null while reading
+let addonTab = null;  // the game version shown
+let addonFilter = "";
+let addonsLoading = false;
+
+async function loadAddons() {
+  if (addonsLoading) return;
+  addonsLoading = true;
+  try {
+    addonData = await invoke("addons");
+  } catch {
+    addonData = [];
+  }
+  addonsLoading = false;
+  if (settings.view === "addons") render();
+}
+
+function flavorName(product, folder) {
+  for (const g of installed.games) {
+    const f = g.flavors.find((x) => x.product === product);
+    if (f) return f.name;
+  }
+  return folder.replace(/_/g, " ").trim();
+}
+
+function addonsPage() {
+  const head = el("div", { class: "page-head" }, el("h2", {}, "Addons"),
+    el("p", {}, "Your installed addons for each version of World of Warcraft. Update checks with CurseForge and Wago come next."));
+  if (addonData === null) {
+    loadAddons();
+    return el("div", { class: "scroll-page" }, head, el("p", { class: "quiet pad" }, "Reading your addons..."));
+  }
+  if (!addonData.length) {
+    return el("div", { class: "scroll-page" }, head, el("p", { class: "quiet pad" }, "No World of Warcraft addons found."));
+  }
+  const tab = addonData.find((f) => f.product === addonTab) || addonData[0];
+  addonTab = tab.product;
+  const old = tab.addons.filter((a) => a.out_of_date).length;
+  const query = addonFilter.trim().toLowerCase();
+  const shown = tab.addons.filter((a) => !query || a.title.toLowerCase().includes(query) || a.folders.some((f) => f.toLowerCase().includes(query)));
+
+  const list = el("div", { class: "list" }, ...shown.map((a) => el("div", { class: "list-row" },
+    el("div", { class: "grow" },
+      el("b", {}, a.title),
+      el("small", { title: a.folders.join(", ") },
+        [a.version && `Version ${a.version}`, a.author, a.folders.length > 1 ? `${a.folders.length} folders` : a.folders[0]].filter(Boolean).join(" | "))),
+    a.curse_id ? el("span", { class: "chip" }, "CurseForge") : null,
+    a.wago_id ? el("span", { class: "chip" }, "Wago") : null,
+    a.out_of_date ? el("span", { class: "chip warn", title: "Made for an older version of the game. It may still work if you load out of date addons." }, "Out of date") : null)));
+
+  const search = el("input", { class: "search", type: "search", placeholder: "Find an addon", value: addonFilter, "aria-label": "Find an addon" });
+  search.addEventListener("input", () => {
+    addonFilter = search.value;
+    const at = search.selectionStart;
+    render();
+    const again = document.querySelector(".search");
+    if (again) { again.focus(); again.setSelectionRange(at, at); }
+  });
+
+  return el("div", { class: "scroll-page" }, head,
+    el("div", { class: "toolbar" },
+      ...addonData.map((f) => el("button", { class: "tab" + (f === tab ? " on" : ""), onclick: () => { addonTab = f.product; render(); } },
+        flavorName(f.product, f.folder), el("small", {}, String(f.addons.length)))),
+      el("span", { class: "spacer" }),
+      search,
+      el("button", { class: "ghost", onclick: () => { addonData = null; render(); } }, "Read again"),
+      // Turned on once Waygate talks to CurseForge (scope.md: addon updates step 2).
+      el("button", { class: "ghost primary", disabled: true, title: "Coming soon: Waygate needs its CurseForge connection first" }, "Update all")),
+    el("p", { class: "summary" }, `${tab.addons.length} addons` + (old ? `, ${old} out of date for this version of the game` : ", all up to date for this version of the game") +
+      `. ${tab.addons.filter((a) => a.curse_id).length} come from CurseForge, so Waygate will be able to update them.`),
+    list);
 }
 
 function gamePage(game) {
@@ -257,6 +431,8 @@ function render() {
   let page;
   if (game) page = gamePage(game);
   else if (settings.view === "settings") page = settingsPage();
+  else if (settings.view === "downloads") page = downloadsPage();
+  else if (settings.view === "addons") page = addonsPage();
   else page = homePage();
   document.title = game ? `Waygate | ${game.name}` : "Waygate";
   $("view").replaceChildren(page);
@@ -329,10 +505,15 @@ async function start() {
     $("view").replaceChildren(el("p", { class: "empty" }, String(err)));
     return;
   }
-  const known = ["home", "settings", ...installed.games.map((g) => g.uid)];
+  const known = ["home", "settings", "downloads", "addons", ...installed.games.map((g) => g.uid)];
   if (!known.includes(settings.view)) settings.view = "home";
   render();
   renderNotes();
+  // Online checks run in the background and fill in when they answer.
+  loadUpdates();
+  loadNews();
+  setInterval(loadUpdates, 30 * 60 * 1000);
+  setInterval(() => { news = null; loadNews(); }, 15 * 60 * 1000);
 }
 
 start();

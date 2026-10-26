@@ -36,6 +36,9 @@ pub struct Flavor {
     pub name: String,
     pub version: String,
     pub region: String,
+    /// The build's fingerprint (Build Key), compared with the patch server's
+    /// BuildConfig so a rebuild under the same version still counts as new.
+    pub build: String,
     /// Battle.net's launch code for `--exec="launch <code>"`. Only codes
     /// checked on a real PC are listed; the rest open Battle.net instead.
     pub launch: Option<String>,
@@ -115,7 +118,7 @@ pub fn read_build_info(install: &Path) -> Vec<Flavor> {
     let cols: Vec<&str> = header.split('|').map(|c| c.split('!').next().unwrap_or("")).collect();
     let col = |name: &str| cols.iter().position(|c| *c == name);
     let (Some(product_col), Some(version_col)) = (col("Product"), col("Version")) else { return Vec::new() };
-    let (branch_col, active_col) = (col("Branch"), col("Active"));
+    let (branch_col, active_col, build_col) = (col("Branch"), col("Active"), col("Build Key"));
 
     let mut out: Vec<Flavor> = Vec::new();
     for line in lines.filter(|l| !l.trim().is_empty()) {
@@ -133,6 +136,7 @@ pub fn read_build_info(install: &Path) -> Vec<Flavor> {
             name: if name.is_empty() { product.clone() } else { name.to_string() },
             version: field(Some(version_col)).to_string(),
             region: field(branch_col).to_uppercase(),
+            build: field(build_col).to_lowercase(),
             launch: launch.map(str::to_string),
             product,
         });
