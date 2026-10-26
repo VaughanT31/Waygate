@@ -22,7 +22,8 @@ const THEMES = {
     badge: "OW",
     accent: "#f99e1a",
     accentText: "#fbb755",
-    cardBg: "linear-gradient(160deg, #2a3550 0%, #151a2b 55%, #0e0c17 100%)",
+    poster: "media/ow-poster.jpg",
+    artPos: "68% 30%",
   },
 };
 
@@ -67,11 +68,43 @@ function flavorOf(game) {
   return saved || game.flavors.find((f) => f.launch) || game.flavors[0] || null;
 }
 
-// ---------- Play button with a version menu ----------
+// ---------- Play button with a menu ----------
 
 const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 
-function playControl(game, onPick) {
+// Small line icons for each version, drawn here so no game art or logos are used.
+const ICON_PATHS = {
+  wow: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/>',
+  wow_classic: '<path d="M12 3 5 6v5c0 4.4 3 8.2 7 10 4-1.8 7-5.6 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
+  wow_anniversary: '<path d="M12 3 5 6v5c0 4.4 3 8.2 7 10 4-1.8 7-5.6 7-10V6z"/><path d="M12 8v8M8 12h8"/>',
+  wow_classic_era: '<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>',
+  test: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>',
+};
+function flavorIcon(product) {
+  const paths = ICON_PATHS[product] || (/ptr|beta|wowt|xptr/.test(product) ? ICON_PATHS.test : ICON_PATHS.wow);
+  const span = el("span", { class: "mode-icon" });
+  span.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  return span;
+}
+
+function pickFlavor(game, f) {
+  save({ flavors: { ...settings.flavors, [game.uid]: f.product } });
+  render();
+}
+
+// The row of versions under Play, like Retail | Classic. Hidden when the only
+// version is the game itself (Overwatch has just one).
+function modeRow(game) {
+  const flavor = flavorOf(game);
+  if (game.flavors.length < 2 && (!flavor || flavor.name === game.name)) return null;
+  return el("div", { class: "modes", role: "radiogroup", "aria-label": `${game.name} version` },
+    ...game.flavors.map((f) => el("button", {
+      class: "mode" + (f === flavor ? " on" : ""), role: "radio", "aria-checked": String(f === flavor),
+      title: [f.name, f.version].filter(Boolean).join(" "), onclick: () => pickFlavor(game, f),
+    }, flavorIcon(f.product), el("span", {}, f.name))));
+}
+
+function playControl(game, { onHome = false } = {}) {
   const flavor = flavorOf(game);
   const canLaunch = Boolean(flavor && flavor.launch);
   const msg = el("div", { class: "msg", role: "status" });
@@ -91,41 +124,42 @@ function playControl(game, onPick) {
     }
   });
 
-  const row = el("div", { class: "play-row" }, play);
+  // The arrow menu: versions (when there's a choice) and things to open.
+  const menu = el("div", { class: "menu", role: "menu", hidden: true });
+  const more = el("button", { class: "more", "aria-label": `More for ${game.name}`, "aria-haspopup": "menu", "aria-expanded": "false" });
+  more.innerHTML = CHEVRON;
   if (game.flavors.length > 1) {
-    const menu = el("div", { class: "menu", role: "menu", hidden: true });
-    const more = el("button", { class: "more", "aria-label": "Choose version", "aria-haspopup": "menu", "aria-expanded": "false" });
-    more.innerHTML = CHEVRON;
     for (const f of game.flavors) {
-      menu.append(el("button", {
-        role: "menuitemradio", "aria-checked": String(f === flavor),
-        onclick: () => {
-          save({ flavors: { ...settings.flavors, [game.uid]: f.product } });
-          onPick();
-        },
-      }, el("span", {}, f.name), el("small", {}, shortVersion(f.version))));
+      menu.append(el("button", { role: "menuitemradio", "aria-checked": String(f === flavor), onclick: () => pickFlavor(game, f) },
+        el("span", {}, f.name), el("small", {}, shortVersion(f.version))));
     }
-    more.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const open = menu.hidden;
-      closeMenus();
-      menu.hidden = !open;
-      more.setAttribute("aria-expanded", String(open));
-    });
-    row.append(more, menu);
+    menu.append(el("hr"));
   }
+  const action = (label, fn) => menu.append(el("button", { role: "menuitem", onclick: fn }, el("span", {}, label)));
+  if (onHome) action(`Open ${game.name} page`, () => go(game.uid));
+  action("Open game folder", () => invoke("open_folder", { uid: game.uid }).catch((err) => setMessage(String(err), true)));
+  if (installed.battle_net) action("Open Battle.net", () => invoke("play", { uid: game.uid, product: null }).catch((err) => setMessage(String(err), true)));
+  more.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = menu.hidden;
+    closeMenus();
+    menu.hidden = !open;
+    more.setAttribute("aria-expanded", String(open));
+  });
+  const row = el("div", { class: "play-row" }, play, more, menu);
 
   const ver = el("div", { class: "ver" });
   if (flavor) ver.append(el("i"), [flavor.version, flavor.name].filter(Boolean).join(" | "));
 
   if (!installed.battle_net) setMessage("Battle.net isn't installed, so games can't start from here.", true);
-  else if (!canLaunch) setMessage("Waygate can't start this one directly yet. Battle.net opens so you can press Play there.");
+  else if (!canLaunch && !onHome) setMessage("Waygate can't start this one directly yet. Battle.net opens so you can press Play there.");
 
   return el("div", {}, row, ver, msg);
 }
 
 function closeMenus() {
-  document.querySelectorAll(".menu").forEach((m) => { m.hidden = true; });
+  document.querySelectorAll(".menu, .notes").forEach((m) => { m.hidden = true; });
+  $("bell").setAttribute("aria-expanded", "false");
   document.querySelectorAll(".more").forEach((b) => b.setAttribute("aria-expanded", "false"));
 }
 document.addEventListener("click", closeMenus);
@@ -146,33 +180,33 @@ function renderSide() {
 
 // ---------- Pages ----------
 
+// Home scrolls: the angled game panels on top, and room below them for news
+// and the rest as they arrive.
 function homePage() {
   if (!installed.games.length) {
     return el("div", { class: "home" },
       el("div", { class: "page-head" }, el("h2", {}, "Home")),
       el("p", { class: "empty" }, "No Blizzard games found. Install one through Battle.net and open Waygate again."));
   }
-  const cards = installed.games.map((game) => {
+  const panels = installed.games.map((game) => {
     const theme = themeOf(game);
     const flavor = flavorOf(game);
-    const card = el("section", {
-      class: "card",
+    const panel = el("section", {
+      class: "panel",
       style: accentStyle(theme) + (theme.cardBg ? `;--card-bg:${theme.cardBg}` : "") + (theme.artPos ? `;--art-pos:${theme.artPos}` : ""),
       "aria-label": game.name,
     });
-    if (theme.poster) card.append(el("div", { class: "art", style: `background-image:url("${theme.poster}")` }));
+    if (theme.poster) panel.append(el("div", { class: "art", style: `background-image:url("${theme.poster}")` }));
     const kicker = theme.title || (flavor ? `Version ${shortVersion(flavor.version)}` : "");
-    card.append(
+    panel.append(el("div", { class: "panel-body" },
       el("div", { class: "kicker" }, kicker),
       el("h3", { onclick: () => go(game.uid), title: `Open ${game.name}` }, game.name),
-      playControl(game, () => render()),
-    );
-    return card;
+      playControl(game, { onHome: true }),
+      modeRow(game)));
+    return panel;
   });
   return el("div", { class: "home" },
-    el("div", { class: "page-head" }, el("h2", {}, "Home"),
-      el("p", {}, installed.games.length === 1 ? "Your game, ready to play." : "Your games, ready to play.")),
-    el("div", { class: "cards" }, ...cards));
+    el("div", { class: "panels" + (panels.length === 1 ? " single" : "") }, ...panels));
 }
 
 function gamePage(game) {
@@ -196,7 +230,8 @@ function gamePage(game) {
       el("div", { class: "kicker" }, kicker),
       el("h1", {}, theme.title || game.name),
       theme.lead ? el("p", {}, theme.lead) : null,
-      playControl(game, () => render())));
+      playControl(game),
+      modeRow(game)));
 }
 
 function settingsPage() {
@@ -233,6 +268,46 @@ function go(view) {
   render();
 }
 
+// ---------- Notifications ----------
+// Waygate's own news only (new features, what changed), never game or
+// account messages. Newest first; an id is read once the panel is opened.
+
+const NOTES = [
+  {
+    id: "welcome-0.1",
+    date: "2026-10-26",
+    title: "Welcome to Waygate",
+    body: "Your installed games are on Home. Press Play to start one through Battle.net, or open a game for its own page.",
+  },
+];
+
+function renderNotes() {
+  const seen = new Set(settings.seen || []);
+  $("bell-dot").hidden = !NOTES.some((n) => !seen.has(n.id));
+  $("notes").replaceChildren(
+    el("h4", {}, "Notifications"),
+    ...(NOTES.length
+      ? NOTES.map((n) => el("div", { class: "note-item" + (seen.has(n.id) ? "" : " new") },
+          el("small", {}, new Date(n.date).toLocaleDateString(undefined, { day: "numeric", month: "short" })),
+          el("b", {}, n.title), el("p", {}, n.body)))
+      : [el("p", { class: "note-empty" }, "Nothing new.")]));
+}
+
+$("bell").addEventListener("click", (event) => {
+  event.stopPropagation();
+  const notes = $("notes");
+  const open = notes.hidden;
+  closeMenus();
+  notes.hidden = !open;
+  $("bell").setAttribute("aria-expanded", String(open));
+  if (open) {
+    renderNotes();
+    save({ seen: [...new Set([...(settings.seen || []), ...NOTES.map((n) => n.id)])] });
+    $("bell-dot").hidden = true;
+  }
+});
+$("notes").addEventListener("click", (event) => event.stopPropagation());
+
 document.querySelectorAll(".nav-item[data-view]").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
 const appWindow = window.__TAURI__.window?.getCurrentWindow();
 if (appWindow) {
@@ -249,7 +324,7 @@ async function start() {
   try {
     const [found, saved] = await Promise.all([invoke("installed"), invoke("load_settings")]);
     installed = found;
-    settings = { view: "home", ...saved, flavors: saved.flavors || {} };
+    settings = { view: "home", ...saved, flavors: saved.flavors || {}, seen: saved.seen || [] };
   } catch (err) {
     $("view").replaceChildren(el("p", { class: "empty" }, String(err)));
     return;
@@ -257,6 +332,7 @@ async function start() {
   const known = ["home", "settings", ...installed.games.map((g) => g.uid)];
   if (!known.includes(settings.view)) settings.view = "home";
   render();
+  renderNotes();
 }
 
 start();

@@ -25,6 +25,22 @@ fn play(uid: String, product: Option<String>) -> Result<(), String> {
     launch::start(Path::new(&battle_net), code.as_deref())
 }
 
+/// Opens a game's install folder in Explorer, looked up again here rather
+/// than taken from the page. Only opens it; nothing in it is touched.
+#[tauri::command]
+fn open_folder(uid: String) -> Result<(), String> {
+    let found = games::scan();
+    let game = found.games.iter().find(|g| g.uid == uid).ok_or("That game isn't installed.")?;
+    if !Path::new(&game.install).is_dir() {
+        return Err("The game's folder wasn't found.".into());
+    }
+    std::process::Command::new("explorer")
+        .arg(&game.install)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Couldn't open the folder: {e}"))
+}
+
 /// Opens one of Waygate's own links in the default browser. Only these
 /// addresses can be opened, whatever the page asks for.
 #[tauri::command]
@@ -53,7 +69,7 @@ fn save_settings(settings: settings::Settings) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![installed, play, open_link, load_settings, save_settings])
+        .invoke_handler(tauri::generate_handler![installed, play, open_folder, open_link, load_settings, save_settings])
         .run(tauri::generate_context!())
         .expect("error while running Waygate");
 }

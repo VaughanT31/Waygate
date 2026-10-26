@@ -12,6 +12,8 @@ pub struct Settings {
     pub view: Option<String>,
     /// The version picked per game: uid to .build.info product.
     pub flavors: HashMap<String, String>,
+    /// Waygate notifications already read, by id.
+    pub seen: Vec<String>,
 }
 
 fn path() -> Option<PathBuf> {

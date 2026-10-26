@@ -49,20 +49,43 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .page-head h2 { font-family: "Cinzel", serif; font-weight: 600; font-size: 30px; }
 .page-head p { color: var(--dim); font-size: 14px; margin-top: 6px; }
 
-/* Home: one column per installed game */
-.home { height: 100%; display: flex; flex-direction: column; }
-.cards { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(300px, 1fr); gap: 0;
-  margin: 26px 0 0; overflow-x: auto; }
-.card { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 28px 64px;
-  border-left: 1px solid var(--line); background: var(--card-bg, linear-gradient(160deg, #221b33, #0e0c17)); }
-.card:first-child { border-left: 0; }
-.card .art { position: absolute; inset: 0; background-size: cover; background-position: var(--art-pos, center); transition: transform .6s ease; }
-.card:hover .art { transform: scale(1.03); }
-.card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(9, 7, 17, .96) 0%, rgba(9, 7, 17, .7) 34%, rgba(9, 7, 17, .1) 70%, transparent); }
-.card > *:not(.art) { position: relative; z-index: 1; }
-.card .kicker { font-size: 12px; font-weight: 600; letter-spacing: .22em; color: var(--accent-text); text-transform: uppercase; }
-.card h3 { font-family: "Cinzel", serif; font-weight: 600; font-size: clamp(30px, 2.6vw, 44px); line-height: 1.05; margin-top: 10px; cursor: pointer; }
-.card h3:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+/* Home: scrolls, angled game panels on top. Each panel is cut as a slanted
+   shape (--slant wide) and overlaps the one before, leaving a thin gap as
+   the divider. */
+.home { height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .15) transparent; }
+.panels { --slant: 72px; --gap: 5px; display: flex; height: max(560px, 100vh); background: #06050b; }
+.panel { position: relative; flex: 1 1 0; min-width: 300px; overflow: hidden;
+  margin-left: calc(var(--gap) - var(--slant));
+  clip-path: polygon(var(--slant) 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
+  background: var(--card-bg, linear-gradient(160deg, #221b33, #0e0c17)); }
+.panel:first-child { margin-left: 0; clip-path: polygon(0 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%); }
+.panel:last-child { clip-path: polygon(var(--slant) 0, 100% 0, 100% 100%, 0 100%); }
+.panels.single .panel { clip-path: none; }
+.panel .art { position: absolute; inset: 0; background-size: cover; background-position: var(--art-pos, center); transition: transform .8s ease, filter .3s; filter: brightness(.9); }
+.panel:hover .art { transform: scale(1.04); filter: brightness(1); }
+.panel::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(0deg, rgba(9, 7, 17, .97) 0%, rgba(9, 7, 17, .78) 30%, rgba(9, 7, 17, .15) 62%, transparent); }
+.panel-body { position: absolute; left: 0; right: 0; top: max(46%, 250px); z-index: 1; display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 0 calc(var(--slant) + 16px); }
+.panel .kicker { font-size: 12px; font-weight: 600; letter-spacing: .22em; color: var(--accent-text); text-transform: uppercase; min-height: 1em; }
+.panel h3 { font-family: "Cinzel", serif; font-weight: 600; font-size: clamp(30px, 2.8vw, 48px); line-height: 1.05; margin-top: 10px; cursor: pointer;
+  min-height: 2.1em; display: flex; align-items: flex-end; justify-content: center;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, .5); }
+.panel h3:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+.panel .play-row { justify-content: center; }
+.panel .menu { left: 50%; transform: translateX(-50%); }
+.panel .msg { margin-left: auto; margin-right: auto; }
+
+/* The row of versions under Play */
+.modes { display: flex; justify-content: center; margin-top: 18px; }
+.mode { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 18px; font-size: 13px; color: var(--dim);
+  border-left: 1px solid var(--line); border-radius: 0; }
+.mode:first-child { border-left: 0; }
+.mode:hover { color: var(--text); }
+.mode.on { color: var(--text); }
+.mode-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); }
+.mode-icon svg { width: 18px; height: 18px; }
+.mode.on .mode-icon { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 14px -4px var(--accent); }
 
 /* Play button with a version menu, used on Home and game pages */
 .play-row { display: flex; align-items: stretch; gap: 8px; margin-top: 22px; position: relative; }
@@ -85,6 +108,9 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .menu button[aria-checked="true"] { color: var(--text); }
 .menu button[aria-checked="true"]::after { content: "\2713"; color: var(--accent); }
 .menu small { color: var(--dim); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
+.intro .modes { justify-content: flex-start; }
+.intro .mode:first-child { padding-left: 0; }
 
 .ver { margin-top: 12px; font-size: 13px; color: var(--dim); min-height: 1em; }
 .ver i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 8px; }
@@ -123,7 +149,26 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .empty { padding: 34px 40px; color: var(--soft); font-size: 16px; line-height: 1.6; max-width: 560px; }
 
 /* Our own title bar: a drag strip over the top of the page, buttons top right */
-.drag { position: fixed; left: var(--side-w); right: 138px; top: 0; height: 32px; z-index: 7; }
+.drag { position: fixed; left: var(--side-w); right: 184px; top: 0; height: 32px; z-index: 7; }
+
+/* Waygate notifications, left of the window buttons */
+.notes-wrap { position: fixed; top: 0; right: 138px; z-index: 8; }
+.bell { width: 46px; height: 32px; display: grid; place-items: center; color: var(--soft); position: relative; }
+.bell svg { width: 16px; height: 16px; }
+.bell:hover, .bell[aria-expanded="true"] { background: rgba(255, 255, 255, .08); color: var(--text); }
+.bell .dot { position: absolute; top: 7px; right: 13px; width: 7px; height: 7px; border-radius: 50%; background: #a98bff; box-shadow: 0 0 0 2px var(--ink); }
+.bell .dot[hidden] { display: none; }
+.notes { position: absolute; right: 0; top: 38px; width: 340px; max-height: 70vh; overflow-y: auto; background: #151221; border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px; box-shadow: 0 18px 40px -10px rgba(0, 0, 0, .75); }
+.notes[hidden] { display: none; }
+.notes h4 { font-size: 11px; font-weight: 600; letter-spacing: .22em; color: var(--dim); text-transform: uppercase; padding: 8px 10px; }
+.note-item { padding: 10px; border-radius: 8px; }
+.note-item + .note-item { border-top: 1px solid var(--line); }
+.note-item small { font-size: 11px; color: var(--dim); }
+.note-item b { display: block; font-size: 14px; font-weight: 600; margin-top: 2px; }
+.note-item.new b::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #a98bff; margin-right: 8px; vertical-align: middle; }
+.note-item p { font-size: 13px; line-height: 1.5; color: var(--soft); margin-top: 4px; }
+.note-empty { padding: 10px; font-size: 13px; color: var(--dim); }
 .winctl { position: fixed; top: 0; right: 0; display: flex; z-index: 8; }
 .winctl button { width: 46px; height: 32px; display: grid; place-items: center; color: var(--soft); }
 .winctl svg { width: 12px; height: 12px; }
