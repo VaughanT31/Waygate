@@ -7,28 +7,39 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg" id="bg"></div>
-
-<nav class="rail" id="rail" aria-label="Installed games"></nav>
-
-<header class="top">
-  <span class="wordmark" id="wordmark">WAYGATE</span>
-  <span class="where" id="where"></span>
-</header>
-
-<main class="intro" id="intro">
-  <div class="kicker" id="kicker"></div>
-  <h1 id="title">Waygate</h1>
-  <p id="lead">Looking for your games...</p>
-  <div class="flavors" id="flavors" role="radiogroup" aria-label="Game version"></div>
-  <div class="play-row">
-    <button class="play" id="play" disabled>Play</button>
+<aside class="side">
+  <div class="brand" data-tauri-drag-region><img src="media/waygate.png" alt=""><span>WAYGATE</span></div>
+  <nav class="nav" aria-label="Pages">
+    <button class="nav-item" data-view="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span>Home</span>
+    </button>
+    <div class="nav-label">Games</div>
+    <div id="games"></div>
+  </nav>
+  <div class="side-foot">
+    <button class="nav-item" data-view="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span>Settings</span>
+    </button>
   </div>
-  <div class="ver" id="ver"></div>
-  <div class="msg" id="msg" role="status"></div>
-</main>
+</aside>
 
-<div class="caption" id="caption"></div>
+<main class="view" id="view"></main>
+
+<!-- Our own title bar: a strip to drag the window by, and its buttons. -->
+<div class="drag" data-tauri-drag-region></div>
+<div class="winctl">
+  <button id="win-min" aria-label="Minimise" title="Minimise"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" stroke="currentColor" stroke-width="1.2"/></svg></button>
+  <button id="win-max" aria-label="Maximise" title="Maximise"><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></button>
+  <button id="win-close" class="close" aria-label="Close" title="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 2.5 7 7m0-7-7 7" stroke="currentColor" stroke-width="1.2"/></svg></button>
+</div>
+
+<div class="support" aria-label="Support Waygate">
+  <span>Support Waygate</span>
+  <button class="support-link" data-link="kofi">Ko-fi</button>
+  <button class="support-link" data-link="patreon">Patreon</button>
+</div>
 
 <script src="app.js"></script>
 </body>

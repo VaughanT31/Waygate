@@ -1,16 +1,17 @@
 //! Waygate's own settings, in %APPDATA%\Waygate\settings.json.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(default)]
 pub struct Settings {
-    /// The game picked in the rail (its Battle.net uid).
-    pub game: Option<String>,
-    /// The version picked for that game (a .build.info product).
-    pub flavor: Option<String>,
+    /// The page open last: "home", "settings" or a game's Battle.net uid.
+    pub view: Option<String>,
+    /// The version picked per game: uid to .build.info product.
+    pub flavors: HashMap<String, String>,
 }
 
 fn path() -> Option<PathBuf> {

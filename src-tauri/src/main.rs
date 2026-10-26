@@ -25,6 +25,22 @@ fn play(uid: String, product: Option<String>) -> Result<(), String> {
     launch::start(Path::new(&battle_net), code.as_deref())
 }
 
+/// Opens one of Waygate's own links in the default browser. Only these
+/// addresses can be opened, whatever the page asks for.
+#[tauri::command]
+fn open_link(which: String) -> Result<(), String> {
+    let url = match which.as_str() {
+        "kofi" => "https://ko-fi.com/ctrlshiftzed",
+        "patreon" => "https://www.patreon.com/cw/CtrlShiftZed",
+        _ => return Err("Unknown link.".into()),
+    };
+    std::process::Command::new("explorer")
+        .arg(url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Couldn't open the browser: {e}"))
+}
+
 #[tauri::command]
 fn load_settings() -> settings::Settings {
     settings::load()
@@ -37,7 +53,7 @@ fn save_settings(settings: settings::Settings) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![installed, play, load_settings, save_settings])
+        .invoke_handler(tauri::generate_handler![installed, play, open_link, load_settings, save_settings])
         .run(tauri::generate_context!())
         .expect("error while running Waygate");
 }
