@@ -53,6 +53,7 @@ fn flavor_info(product: &str) -> (&'static str, Option<&'static str>) {
         "wow_classic_era" => ("Classic Era", None),
         "wow_ptr" | "wowt" => ("Public Test Realm", None),
         "wow_beta" | "wowxptr" => ("Beta", None),
+        "pro" => ("Overwatch", None),
         _ => ("", None),
     }
 }

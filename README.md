@@ -41,6 +41,11 @@ Waygate never touches your Battle.net account. There's nothing to log in to, so 
 - **Read only.** It reads the game version and your addons' version numbers, and never writes to the
   game folder.
 
+## Free for everyone
+
+Every feature is free for everyone, with no paid version. If you'd like to support it, there's
+[Ko-fi](https://ko-fi.com/G2G01YLR68) and [Patreon](https://patreon.com/CtrlShiftZed).
+
 ## Requirements
 
 - Windows 10 or 11
