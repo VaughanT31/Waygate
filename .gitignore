@@ -24,3 +24,6 @@ node_modules/
 *.log
 Thumbs.db
 .DS_Store
+
+# This PC only: build output path without spaces (MinGW windres)
+/src-tauri/.cargo/
