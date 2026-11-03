@@ -4,9 +4,9 @@ A game launcher that's worth opening. Waygate sits in front of Battle.net and dr
 current content of each game: for World of Warcraft right now that's Midnight, with the void, the
 Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the part again.
 
-![Waygate home page, World of Warcraft and Overwatch side by side](docs/home.png)
+![Waygate, the World of Warcraft page with the This week bar](docs/home.png)
 
-> Status: in development. Above is the home page as it is today.
+> Status: in development. Above is the World of Warcraft page as it is today.
 
 ## What it does
 
