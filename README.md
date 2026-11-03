@@ -8,10 +8,6 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
 
 > Status: in development. Above is the home page as it is today.
 
-![Waygate, World of Warcraft page in the Midnight theme (concept)](mockup/wow-home-midnight.png)
-
-> The World of Warcraft page in the Midnight theme, a concept mock-up; the numbers in it are made up.
-
 ## What it does
 
 - **Only your games.** Reads which Blizzard games you have installed and shows those, nothing else.
