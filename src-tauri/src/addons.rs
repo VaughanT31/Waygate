@@ -6,7 +6,7 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Clone)]
 pub struct Flavor {
@@ -191,8 +191,8 @@ fn scan_addons(addons_dir: &Path, product: &str, interface: Option<u32>) -> Vec<
     out
 }
 
-/// Every WoW version folder in the install, with its addons.
-pub fn scan(install: &Path, versions: &[(String, String)]) -> Vec<Flavor> {
+/// Every WoW version folder in the install: (product, folder name, path).
+pub fn version_folders(install: &Path) -> Vec<(String, String, PathBuf)> {
     let Ok(dirs) = fs::read_dir(install) else { return Vec::new() };
     let mut out = Vec::new();
     for entry in dirs.flatten() {
@@ -203,10 +203,19 @@ pub fn scan(install: &Path, versions: &[(String, String)]) -> Vec<Flavor> {
         }
         let Ok(info) = fs::read_to_string(path.join(".flavor.info")) else { continue };
         let Some(product) = info.lines().map(str::trim).find(|l| !l.is_empty() && !l.contains('!')) else { continue };
-        let interface = versions.iter().find(|(p, _)| p == product).and_then(|(_, v)| interface_of(v));
+        out.push((product.to_string(), folder, path));
+    }
+    out
+}
+
+/// Every WoW version folder in the install, with its addons.
+pub fn scan(install: &Path, versions: &[(String, String)]) -> Vec<Flavor> {
+    let mut out = Vec::new();
+    for (product, folder, path) in version_folders(install) {
+        let interface = versions.iter().find(|(p, _)| *p == product).and_then(|(_, v)| interface_of(v));
         out.push(Flavor {
-            addons: scan_addons(&path.join("Interface").join("AddOns"), product, interface),
-            product: product.to_string(),
+            addons: scan_addons(&path.join("Interface").join("AddOns"), &product, interface),
+            product,
             folder,
             interface,
         });

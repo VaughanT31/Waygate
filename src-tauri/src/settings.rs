@@ -14,6 +14,8 @@ pub struct Settings {
     pub flavors: HashMap<String, String>,
     /// Waygate notifications already read, by id.
     pub seen: Vec<String>,
+    /// Characters picked to show, by realm and name (looked up on Raider.IO).
+    pub characters: Vec<crate::characters::Tracked>,
 }
 
 fn path() -> Option<PathBuf> {

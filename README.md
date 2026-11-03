@@ -14,9 +14,10 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
 - **Play.** Starts the game through Battle.net, which stays in the tray where it belongs.
 - **Themes per patch.** Each game has a theme pack (colours, background, logo, accent, optional
   ambient sound), picked by the game's current version.
-- **What matters this week:** the weekly reset countdown and Great Vault, Mythic+ affixes, the WoW
+- **What matters this week:** the weekly reset countdown, the season week, Mythic+ affixes, the WoW
   Token price and your realm's status.
-- **Your characters:** item level and Mythic+ score, from Raider.IO by the names you type in.
+- **Your characters:** item level and Mythic+ score from Raider.IO, for the characters you pick from the
+  ones you've played on this PC.
 - **News for your game only:** patch notes and events, no ads for other games.
 - **Your addons:** installed versions and whether an update is out.
 
@@ -42,6 +43,10 @@ Waygate never touches your Battle.net account. There's nothing to log in to, so 
   It starts a game with Battle.net's own launch command, the same thing a desktop shortcut does.
 - **Read only.** It reads the game version and your addons' version numbers, and never writes to the
   game folder.
+- **Characters from folder names only.** The game makes a folder for each character you log in to.
+  Waygate reads those names and the date each was last saved, to list your characters with the most
+  recently played first. It never opens anything inside, and your account's folder name is never kept
+  or shown.
 
 ## Free for everyone
 

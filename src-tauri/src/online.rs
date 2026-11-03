@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-fn agent() -> ureq::Agent {
+pub fn agent() -> ureq::Agent {
     let mut builder = ureq::AgentBuilder::new();
     if let Ok(tls) = native_tls::TlsConnector::new() {
         builder = builder.tls_connector(std::sync::Arc::new(tls));
@@ -111,7 +111,7 @@ fn locale(region: &str) -> &'static str {
 }
 
 /// 2026-10-20T19:15:17Z from milliseconds since 1970 (days to a calendar date).
-fn iso_from_ms(ms: i64) -> String {
+pub fn iso_from_ms(ms: i64) -> String {
     let secs = ms.div_euclid(1000);
     let (days, rem) = (secs.div_euclid(86400), secs.rem_euclid(86400));
     let z = days + 719468;
@@ -124,6 +124,12 @@ fn iso_from_ms(ms: i64) -> String {
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = yoe + era * 400 + if month <= 2 { 1 } else { 0 };
     format!("{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z", rem / 3600, rem % 3600 / 60, rem % 60)
+}
+
+/// Now, in the same ISO format as the dates Raider.IO and the news use.
+pub fn now_iso() -> String {
+    let ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0);
+    iso_from_ms(ms)
 }
 
 /// WoW's news page carries its article list as JSON (`<script id="model">model = {...}`).
