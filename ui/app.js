@@ -389,14 +389,27 @@ function addonsPage() {
   const query = addonFilter.trim().toLowerCase();
   const shown = tab.addons.filter((a) => !query || a.title.toLowerCase().includes(query) || a.folders.some((f) => f.toLowerCase().includes(query)));
 
-  const list = el("div", { class: "list" }, ...shown.map((a) => el("div", { class: "list-row" },
+  const row = (a) => el("div", { class: "list-row" },
     el("div", { class: "grow" },
       el("b", {}, a.title),
       el("small", { title: a.folders.join(", ") },
         [a.version && `Version ${a.version}`, a.author, a.folders.length > 1 ? `${a.folders.length} folders` : a.folders[0]].filter(Boolean).join(" | "))),
     updateChip(a, info) || (a.curse_id ? el("span", { class: "chip" }, "CurseForge") : null),
     a.wago_id ? el("span", { class: "chip" }, "Wago") : null,
-    a.out_of_date ? el("span", { class: "chip warn", title: "Made for an older version of the game. It may still work if you load out of date addons." }, "Out of date") : null)));
+    a.out_of_date ? el("span", { class: "chip warn", title: "Made for an older version of the game. It may still work if you load out of date addons." }, "Out of date") : null);
+
+  // Grouped by what Waygate can do for each addon.
+  const hasUpdate = (a) => a.curse_id && info.byId[a.curse_id]?.state === "update";
+  const groups = [
+    { title: "Updates available", note: "CurseForge has a newer version. Click Update available to open its page.", items: shown.filter(hasUpdate) },
+    { title: "Checked with CurseForge", note: info.loading ? "Checking now..." : "Waygate keeps an eye on these and tells you when an update is out.", items: shown.filter((a) => a.curse_id && !hasUpdate(a)) },
+    { title: "Can't check yet", note: "These don't say which CurseForge project they are, often because they came from Wago or were installed by hand. Waygate can't check them for updates yet.", items: shown.filter((a) => !a.curse_id) },
+  ];
+  const sections = groups.filter((g) => g.items.length).flatMap((g) => [
+    el("h3", { class: "list-head" }, g.title, el("small", {}, String(g.items.length))),
+    el("p", { class: "list-note" }, g.note),
+    el("div", { class: "list" }, ...g.items.map(row)),
+  ]);
 
   const search = el("input", { class: "search", type: "search", placeholder: "Find an addon", value: addonFilter, "aria-label": "Find an addon" });
   search.addEventListener("input", () => {
@@ -417,10 +430,10 @@ function addonsPage() {
       el("button", { class: "ghost", disabled: !!info.loading, onclick: () => { delete addonUpdates[tab.product]; render(); } }, info.loading ? "Checking..." : "Check for updates"),
       // Turned on with one-click updates (scope.md: addon updates step 2).
       el("button", { class: "ghost primary", disabled: true, title: "Coming soon: one-click updates" }, "Update all")),
-    el("p", { class: "summary" }, `${tab.addons.length} addons` + (old ? `, ${old} out of date for this version of the game` : ", all up to date for this version of the game") +
+    el("p", { class: "summary" }, `${tab.addons.length} addons` + (old ? `, ${old} made for an older version of the game` : ", all made for this version of the game") +
       `. ${tab.addons.filter((a) => a.curse_id).length} come from CurseForge` +
       (info.loading ? ", checking for updates..." : info.error ? `. Update check: ${info.error}` : updates ? `, ${updates} with an update.` : ", none with an update.")),
-    list);
+    ...sections);
 }
 
 // ---------- This week (World of Warcraft page) ----------
