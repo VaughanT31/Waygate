@@ -3,6 +3,7 @@
 
 mod addons;
 mod characters;
+mod curse;
 mod games;
 mod launch;
 mod online;
@@ -60,6 +61,23 @@ fn open_link(which: String) -> Result<(), String> {
         _ => return Err("Unknown link.".into()),
     };
     open_in_explorer(url)
+}
+
+/// Opens an addon's CurseForge page: only curseforge.com addresses.
+#[tauri::command]
+fn open_curseforge(url: String) -> Result<(), String> {
+    if !url.starts_with("https://www.curseforge.com/wow/") || url.contains(['"', ' ', '\'']) {
+        return Err("Only CurseForge addon pages open from here.".into());
+    }
+    open_in_explorer(&url)
+}
+
+/// Which installed CurseForge addons have a newer file, through our server (curse.rs).
+#[tauri::command]
+async fn addon_updates(game: String, addons: Vec<curse::Installed>) -> Result<Vec<curse::Status>, String> {
+    tauri::async_runtime::spawn_blocking(move || curse::check(&game, &addons))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Opens a news post: only pages on Blizzard's own forums.
@@ -225,7 +243,7 @@ fn save_settings(settings: settings::Settings) -> Result<(), String> {
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            installed, play, open_folder, open_link, open_news, updates, addons, news, this_week, found_characters, character, wow_token, realm_status, load_settings, save_settings
+            installed, play, open_folder, open_link, open_news, open_curseforge, updates, addons, addon_updates, news, this_week, found_characters, character, wow_token, realm_status, load_settings, save_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running Waygate");

@@ -317,6 +317,38 @@ let addonData = null; // null while reading
 let addonTab = null;  // the game version shown
 let addonFilter = "";
 let addonsLoading = false;
+// CurseForge update checks per game version: { loading, error, byId }. Never saved
+// (CurseForge's terms don't allow keeping their data); each visit asks again.
+let addonUpdates = {};
+
+async function checkUpdates(tab) {
+  const asked = tab.addons.filter((a) => a.curse_id).map((a) => ({ id: a.curse_id, version: a.version }));
+  if (!asked.length || !tab.game_version) {
+    addonUpdates[tab.product] = { byId: {} };
+    return;
+  }
+  addonUpdates[tab.product] = { loading: true, byId: {} };
+  try {
+    const list = await invoke("addon_updates", { game: tab.game_version, addons: asked });
+    addonUpdates[tab.product] = { byId: Object.fromEntries(list.map((u) => [u.id, u])) };
+  } catch (err) {
+    addonUpdates[tab.product] = { error: String(err), byId: {} };
+  }
+  if (settings.view === "addons") render();
+}
+
+function updateChip(a, info) {
+  const u = a.curse_id && info.byId[a.curse_id];
+  if (!u) return null;
+  const open = u.url ? () => invoke("open_curseforge", { url: u.url }).catch(() => {}) : null;
+  const latest = u.latest ? (u.latest.display_name || u.latest.file_name) : "";
+  if (u.state === "update") {
+    return el("button", { class: "chip hot", title: `CurseForge has ${latest}. Click to open its page.`, onclick: open }, "Update available");
+  }
+  if (u.state === "current") return el("span", { class: "chip ok", title: `Same as CurseForge's newest: ${latest}` }, "Up to date");
+  if (u.state === "no_file") return el("span", { class: "chip", title: "CurseForge has no file for this version of the game." }, "Not on CurseForge for this version");
+  return el("button", { class: "chip", title: `Couldn't tell from the names. CurseForge's newest is ${latest}. Click to open its page.`, onclick: open }, "Check on CurseForge");
+}
 
 async function loadAddons() {
   if (addonsLoading) return;
@@ -340,7 +372,7 @@ function flavorName(product, folder) {
 
 function addonsPage() {
   const head = el("div", { class: "page-head" }, el("h2", {}, "Addons"),
-    el("p", {}, "Your installed addons for each version of World of Warcraft. Update checks with CurseForge and Wago come next."));
+    el("p", {}, "Your installed addons for each version of World of Warcraft, checked against CurseForge. One-click updates come next."));
   if (addonData === null) {
     loadAddons();
     return el("div", { class: "scroll-page" }, head, el("p", { class: "quiet pad" }, "Reading your addons..."));
@@ -351,6 +383,9 @@ function addonsPage() {
   const tab = addonData.find((f) => f.product === addonTab) || addonData[0];
   addonTab = tab.product;
   const old = tab.addons.filter((a) => a.out_of_date).length;
+  if (!addonUpdates[tab.product]) checkUpdates(tab);
+  const info = addonUpdates[tab.product] || { loading: true, byId: {} };
+  const updates = Object.values(info.byId).filter((u) => u.state === "update").length;
   const query = addonFilter.trim().toLowerCase();
   const shown = tab.addons.filter((a) => !query || a.title.toLowerCase().includes(query) || a.folders.some((f) => f.toLowerCase().includes(query)));
 
@@ -359,7 +394,7 @@ function addonsPage() {
       el("b", {}, a.title),
       el("small", { title: a.folders.join(", ") },
         [a.version && `Version ${a.version}`, a.author, a.folders.length > 1 ? `${a.folders.length} folders` : a.folders[0]].filter(Boolean).join(" | "))),
-    a.curse_id ? el("span", { class: "chip" }, "CurseForge") : null,
+    updateChip(a, info) || (a.curse_id ? el("span", { class: "chip" }, "CurseForge") : null),
     a.wago_id ? el("span", { class: "chip" }, "Wago") : null,
     a.out_of_date ? el("span", { class: "chip warn", title: "Made for an older version of the game. It may still work if you load out of date addons." }, "Out of date") : null)));
 
@@ -378,11 +413,13 @@ function addonsPage() {
         flavorName(f.product, f.folder), el("small", {}, String(f.addons.length)))),
       el("span", { class: "spacer" }),
       search,
-      el("button", { class: "ghost", onclick: () => { addonData = null; render(); } }, "Read again"),
-      // Turned on once Waygate talks to CurseForge (scope.md: addon updates step 2).
-      el("button", { class: "ghost primary", disabled: true, title: "Coming soon: Waygate needs its CurseForge connection first" }, "Update all")),
+      el("button", { class: "ghost", onclick: () => { addonData = null; addonUpdates = {}; render(); } }, "Read again"),
+      el("button", { class: "ghost", disabled: !!info.loading, onclick: () => { delete addonUpdates[tab.product]; render(); } }, info.loading ? "Checking..." : "Check for updates"),
+      // Turned on with one-click updates (scope.md: addon updates step 2).
+      el("button", { class: "ghost primary", disabled: true, title: "Coming soon: one-click updates" }, "Update all")),
     el("p", { class: "summary" }, `${tab.addons.length} addons` + (old ? `, ${old} out of date for this version of the game` : ", all up to date for this version of the game") +
-      `. ${tab.addons.filter((a) => a.curse_id).length} come from CurseForge, so Waygate will be able to update them.`),
+      `. ${tab.addons.filter((a) => a.curse_id).length} come from CurseForge` +
+      (info.loading ? ", checking for updates..." : info.error ? `. Update check: ${info.error}` : updates ? `, ${updates} with an update.` : ", none with an update.")),
     list);
 }
 

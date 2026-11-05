@@ -315,6 +315,9 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .chip.ok { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
 .chip.hot { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
 .chip.warn { color: #f0b67f; border-color: rgba(240, 182, 127, .4); }
+button.chip { font-family: inherit; background: transparent; cursor: pointer; }
+button.chip.hot { background: var(--accent); }
+button.chip:hover { filter: brightness(1.15); }
 
 /* Our own title bar: a drag strip over the top of the page, buttons top right */
 .drag { position: fixed; left: var(--side-w); right: 184px; top: 0; height: 32px; z-index: 7; }

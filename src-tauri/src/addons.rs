@@ -15,6 +15,8 @@ pub struct Flavor {
     pub folder: String,
     /// The interface number this version expects (12.1.5 is 120105), when known.
     pub interface: Option<u32>,
+    /// The installed game version, like 12.1.5.70575, when known.
+    pub game_version: Option<String>,
     pub addons: Vec<Addon>,
 }
 
@@ -212,8 +214,10 @@ pub fn version_folders(install: &Path) -> Vec<(String, String, PathBuf)> {
 pub fn scan(install: &Path, versions: &[(String, String)]) -> Vec<Flavor> {
     let mut out = Vec::new();
     for (product, folder, path) in version_folders(install) {
-        let interface = versions.iter().find(|(p, _)| *p == product).and_then(|(_, v)| interface_of(v));
+        let game_version = versions.iter().find(|(p, _)| *p == product).map(|(_, v)| v.clone());
+        let interface = game_version.as_deref().and_then(interface_of);
         out.push(Flavor {
+            game_version,
             addons: scan_addons(&path.join("Interface").join("AddOns"), &product, interface),
             product,
             folder,
