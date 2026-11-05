@@ -306,9 +306,11 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .summary { margin: 16px 40px 0; color: var(--dim); font-size: 13px; }
 .list { margin: 12px 40px 0; max-width: 980px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
 .list:empty { display: none; }
-.list-head { display: flex; align-items: baseline; gap: 8px; margin: 26px 40px 0; font-size: 15px; font-weight: 600; color: var(--text); }
-.list-head small { font-size: 12px; font-weight: 500; color: var(--dim); }
-.list-note { margin: 4px 40px 0; max-width: 980px; font-size: 12.5px; color: var(--dim); }
+.addon-groups { margin: 18px 40px 0; max-width: 980px; display: grid; gap: 10px; }
+.addon-groups .group-head { font-size: 15px; color: var(--text); }
+.addon-groups .group-head .chip { margin-left: 4px; font-size: 11px; }
+.addon-groups .list { margin: 6px 0 0; max-width: none; }
+.list-note { margin: 0 0 0 22px; font-size: 12.5px; color: var(--dim); }
 .list-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
 .list-row:first-child { border-top: 0; }
 .list-row .grow { flex: 1; min-width: 0; }
@@ -355,7 +357,14 @@ button.chip:hover { filter: brightness(1.15); }
 .support-link { padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--soft); text-align: left; white-space: nowrap; }
 .support-link:hover { background: rgba(255, 255, 255, .04); color: var(--accent-text); }
 
+/* Page changes: the old page fades out as the new one fades in and settles. */
+::view-transition-old(root) { animation: 160ms ease-out both page-out; }
+::view-transition-new(root) { animation: 260ms cubic-bezier(.2, .7, .2, 1) both page-in; }
+@keyframes page-out { to { opacity: 0; } }
+@keyframes page-in { from { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
   .play, .card .art, .tip, .group-head .chev { transition: none; }
   .sheet.slide { animation: none; }
 }

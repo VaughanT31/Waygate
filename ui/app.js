@@ -320,6 +320,8 @@ let addonsLoading = false;
 // CurseForge update checks per game version: { loading, error, byId }. Never saved
 // (CurseForge's terms don't allow keeping their data); each visit asks again.
 let addonUpdates = {};
+// Which addon accordions are open: the ones Waygate can update start open.
+let addonOpen = { can: true, cannot: false };
 
 async function checkUpdates(tab) {
   const asked = tab.addons.filter((a) => a.curse_id).map((a) => ({ id: a.curse_id, version: a.version }));
@@ -337,17 +339,24 @@ async function checkUpdates(tab) {
   if (settings.view === "addons") render();
 }
 
+// One pill per CurseForge addon, saying plainly where it stands.
 function updateChip(a, info) {
-  const u = a.curse_id && info.byId[a.curse_id];
-  if (!u) return null;
+  if (!a.curse_id) return null;
+  if (info.loading) return el("span", { class: "chip" }, "Checking...");
+  if (info.error) return el("span", { class: "chip", title: info.error }, "Couldn't check");
+  const u = info.byId[a.curse_id];
+  if (!u) return el("span", { class: "chip", title: "Its CurseForge project wasn't found. It may have been removed or made private." }, "Not found on CurseForge");
   const open = u.url ? () => invoke("open_curseforge", { url: u.url }).catch(() => {}) : null;
-  const latest = u.latest ? (u.latest.display_name || u.latest.file_name) : "";
+  const newest = u.latest ? (u.latest.displayName || u.latest.fileName) : "";
+  const yours = a.version ? `You have ${a.version}. ` : "";
   if (u.state === "update") {
-    return el("button", { class: "chip hot", title: `CurseForge has ${latest}. Click to open its page.`, onclick: open }, "Update available");
+    return el("button", { class: "chip hot", title: `${yours}CurseForge has ${newest}. Click to open its page.`, onclick: open }, "Update available");
   }
-  if (u.state === "current") return el("span", { class: "chip ok", title: `Same as CurseForge's newest: ${latest}` }, "Up to date");
-  if (u.state === "no_file") return el("span", { class: "chip", title: "CurseForge has no file for this version of the game." }, "Not on CurseForge for this version");
-  return el("button", { class: "chip", title: `Couldn't tell from the names. CurseForge's newest is ${latest}. Click to open its page.`, onclick: open }, "Check on CurseForge");
+  if (u.state === "current") return el("span", { class: "chip ok", title: `${yours}CurseForge's newest is ${newest}.` }, "Up to date");
+  if (u.state === "no_file") return el("span", { class: "chip", title: "CurseForge has no file for this version of the game." }, "None for this game version");
+  // The names don't say which is newer: show CurseForge's newest so it can be compared by eye.
+  const short = newest.length > 28 ? newest.slice(0, 27) + "..." : newest;
+  return el("button", { class: "chip", title: `${yours}Waygate couldn't tell which is newer. Click to open its CurseForge page.`, onclick: open }, `Newest: ${short}`);
 }
 
 async function loadAddons() {
@@ -394,22 +403,31 @@ function addonsPage() {
       el("b", {}, a.title),
       el("small", { title: a.folders.join(", ") },
         [a.version && `Version ${a.version}`, a.author, a.folders.length > 1 ? `${a.folders.length} folders` : a.folders[0]].filter(Boolean).join(" | "))),
-    updateChip(a, info) || (a.curse_id ? el("span", { class: "chip" }, "CurseForge") : null),
+    updateChip(a, info),
     a.wago_id ? el("span", { class: "chip" }, "Wago") : null,
     a.out_of_date ? el("span", { class: "chip warn", title: "Made for an older version of the game. It may still work if you load out of date addons." }, "Out of date") : null);
 
-  // Grouped by what Waygate can do for each addon.
-  const hasUpdate = (a) => a.curse_id && info.byId[a.curse_id]?.state === "update";
+  // Two accordions: addons Waygate can keep up to date (found on CurseForge with a file for
+  // this game version), and the rest. Updates go to the top of the first.
+  const stateOf = (a) => info.byId[a.curse_id]?.state;
+  const canUpdate = (a) => a.curse_id && (info.loading || info.error || ["update", "current", "unknown"].includes(stateOf(a)));
+  const can = shown.filter(canUpdate).sort((x, y) => (stateOf(y) === "update") - (stateOf(x) === "update"));
+  const cannot = shown.filter((a) => !canUpdate(a));
   const groups = [
-    { title: "Updates available", note: "CurseForge has a newer version. Click Update available to open its page.", items: shown.filter(hasUpdate) },
-    { title: "Checked with CurseForge", note: info.loading ? "Checking now..." : "Waygate keeps an eye on these and tells you when an update is out.", items: shown.filter((a) => a.curse_id && !hasUpdate(a)) },
-    { title: "Can't check yet", note: "These don't say which CurseForge project they are, often because they came from Wago or were installed by hand. Waygate can't check them for updates yet.", items: shown.filter((a) => !a.curse_id) },
-  ];
-  const sections = groups.filter((g) => g.items.length).flatMap((g) => [
-    el("h3", { class: "list-head" }, g.title, el("small", {}, String(g.items.length))),
-    el("p", { class: "list-note" }, g.note),
-    el("div", { class: "list" }, ...g.items.map(row)),
-  ]);
+    { id: "can", title: "Waygate can update", extra: updates ? `${updates} with an update` : "", items: can,
+      note: "On CurseForge with a file for this version of the game. Waygate checks these and tells you when an update is out." },
+    { id: "cannot", title: "Waygate can't update", extra: "", items: cannot,
+      note: "These don't say which CurseForge project they are (often because they came from Wago or were installed by hand), or CurseForge has nothing for this version of the game. Keep these up to date where you got them." },
+  ].filter((g) => g.items.length);
+  const sections = el("div", { class: "addon-groups" }, ...groups.map((g) => {
+    const open = Boolean(query) || addonOpen[g.id];
+    return el("section", { class: "group" + (open ? " open" : "") },
+      el("button", { class: "group-head", "aria-expanded": String(open), onclick: () => { addonOpen[g.id] = !addonOpen[g.id]; render(); } },
+        el("span", { class: "chev", "aria-hidden": "true" }), el("span", {}, g.title), el("small", {}, String(g.items.length)),
+        g.extra ? el("span", { class: "chip hot" }, g.extra) : null),
+      open ? el("p", { class: "list-note" }, g.note) : null,
+      open ? el("div", { class: "list" }, ...g.items.map(row)) : null);
+  }));
 
   const search = el("input", { class: "search", type: "search", placeholder: "Find an addon", value: addonFilter, "aria-label": "Find an addon" });
   search.addEventListener("input", () => {
@@ -433,7 +451,7 @@ function addonsPage() {
     el("p", { class: "summary" }, `${tab.addons.length} addons` + (old ? `, ${old} made for an older version of the game` : ", all made for this version of the game") +
       `. ${tab.addons.filter((a) => a.curse_id).length} come from CurseForge` +
       (info.loading ? ", checking for updates..." : info.error ? `. Update check: ${info.error}` : updates ? `, ${updates} with an update.` : ", none with an update.")),
-    ...sections);
+    sections);
 }
 
 // ---------- This week (World of Warcraft page) ----------
@@ -969,10 +987,15 @@ function render() {
 }
 let renderedView = null;
 
+// Changing page crossfades the old page into the new one (View Transitions,
+// which WebView2 supports). Redraws within a page don't animate.
+const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
 function go(view) {
   rosterOpen = false;
+  const changed = view !== settings.view;
   save({ view });
-  render();
+  if (changed && document.startViewTransition && !calm.matches) document.startViewTransition(render);
+  else render();
 }
 
 // ---------- Notifications ----------
