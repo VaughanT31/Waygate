@@ -16,6 +16,7 @@ ureq = { version = "2", default-features = false, features = ["json", "native-tl
 # Windows' own TLS (schannel): trusts what Windows trusts, so antivirus HTTPS
 # scanning and company proxies work as they do in a browser.
 native-tls = "0.2"
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"

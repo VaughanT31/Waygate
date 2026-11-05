@@ -19,7 +19,7 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
 - **Your characters:** item level and Mythic+ score from Raider.IO, for the characters you pick from the
   ones you've played on this PC.
 - **News for your game only:** patch notes and events, no ads for other games.
-- **Your addons:** installed versions and whether an update is out.
+- **Your addons:** installed versions, whether CurseForge has an update, and one-click updates you can undo.
 
 ## How it works
 
@@ -27,6 +27,8 @@ Sunwell and Quel'Thalas gold. Next expansion, a new theme pack and it looks the 
   look like anything.
 - Battle.net still has to run (it handles your login), but you don't have to look at it. Waygate
   starts games with Battle.net's own launch command and never modifies Battle.net or the games.
+- CurseForge update checks and downloads go through our own server, which holds the CurseForge key, so
+  the app has none. Only addons whose authors allow other apps to download them are updated.
 - Game data is public only: Blizzard's public patch server (to tell you when a game update is out),
   Blizzard's posts on the official forums (news), Raider.IO, and public game data such as affixes and
   the token price. No keys or accounts.
@@ -41,8 +43,9 @@ Waygate never touches your Battle.net account. There's nothing to log in to, so 
   games come from the standard Windows list of installed programs.
 - **No hooks or injection.** It doesn't read memory, inject into, or automate Battle.net or the game.
   It starts a game with Battle.net's own launch command, the same thing a desktop shortcut does.
-- **Read only.** It reads the game version and your addons' version numbers, and never writes to the
-  game folder.
+- **Writes only addon updates.** It reads the game version and your addons' version numbers. The one
+  thing it ever writes in a game folder is an addon update: only inside `Interface\AddOns`, only after
+  you allow it, and it keeps a copy of the old version so every update can be undone.
 - **Characters from folder names only.** The game makes a folder for each character you log in to.
   Waygate reads those names and the date each was last saved, to list your characters with the most
   recently played first. It never opens anything inside, and your account's folder name is never kept

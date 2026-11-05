@@ -16,6 +16,8 @@ pub struct Settings {
     pub seen: Vec<String>,
     /// Characters picked to show, by realm and name (looked up on Raider.IO).
     pub characters: Vec<crate::characters::Tracked>,
+    /// May Waygate write inside Interface\AddOns to update addons? None until asked.
+    pub addon_updates: Option<bool>,
 }
 
 fn path() -> Option<PathBuf> {

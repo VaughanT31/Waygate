@@ -339,6 +339,79 @@ async function checkUpdates(tab) {
   if (settings.view === "addons") render();
 }
 
+// One-click updates (src-tauri/src/update.rs). Busy rows by CurseForge id, the
+// updates that can be undone per game version, and the last result to show.
+let addonBusy = {};
+let addonBackups = {};
+let addonMessage = null;
+
+async function loadBackups(product) {
+  addonBackups[product] = [];
+  try {
+    addonBackups[product] = await invoke("addon_backups", { product });
+  } catch {}
+  if (settings.view === "addons") render();
+}
+
+// Asked once, the first time Update is pressed. Resolves true for yes.
+function askAddonWrites() {
+  return new Promise((resolve) => {
+    const box = el("dialog", { class: "ask" },
+      el("h3", {}, "Let Waygate update addons?"),
+      el("p", {}, "To update an addon, Waygate replaces its folders with CurseForge's newest version. It writes inside your game's Interface\\AddOns folder and nowhere else."),
+      el("p", {}, "Before each update it keeps a copy of the old version, so you can undo it. You can turn this off any time in Settings."),
+      el("div", { class: "ask-buttons" },
+        el("button", { class: "ghost", onclick: () => done(false) }, "Not now"),
+        el("button", { class: "ghost primary", onclick: () => done(true) }, "Allow updates")));
+    const done = (yes) => { box.close(); box.remove(); resolve(yes); };
+    box.addEventListener("cancel", (e) => { e.preventDefault(); done(false); });
+    document.body.append(box);
+    box.showModal();
+  });
+}
+
+async function updateAddon(tab, a) {
+  const u = addonUpdates[tab.product]?.byId[a.curse_id];
+  if (!u?.latest || addonBusy[a.curse_id]) return;
+  if (settings.addon_updates !== true) {
+    const yes = await askAddonWrites();
+    save({ addon_updates: yes });
+    if (!yes) return;
+  }
+  addonBusy[a.curse_id] = "Updating...";
+  render();
+  try {
+    await invoke("update_addon", { product: tab.product, id: a.curse_id, fileId: u.latest.fileId });
+    addonMessage = { text: `${a.title} is updated to ${u.latest.displayName || u.latest.fileName}. Reload your UI in game (/reload) to use it.` };
+  } catch (err) {
+    addonMessage = { text: `${a.title} wasn't updated: ${err}`, bad: true };
+  }
+  delete addonBusy[a.curse_id];
+  refreshAddons(tab.product);
+}
+
+async function undoAddon(tab, a, backup) {
+  if (addonBusy[a.curse_id]) return;
+  addonBusy[a.curse_id] = "Undoing...";
+  render();
+  try {
+    await invoke("undo_addon", { product: tab.product, id: a.curse_id });
+    addonMessage = { text: `${a.title} is back to ${backup.version || "the version before"}.` };
+  } catch (err) {
+    addonMessage = { text: `Couldn't undo ${a.title}: ${err}`, bad: true };
+  }
+  delete addonBusy[a.curse_id];
+  refreshAddons(tab.product);
+}
+
+// Reads the AddOns folders again, then checks and lists backups afresh.
+function refreshAddons(product) {
+  addonData = null;
+  delete addonUpdates[product];
+  delete addonBackups[product];
+  render();
+}
+
 // One pill per CurseForge addon, saying plainly where it stands.
 function updateChip(a, info) {
   if (!a.curse_id) return null;
@@ -349,6 +422,9 @@ function updateChip(a, info) {
   const open = u.url ? () => invoke("open_curseforge", { url: u.url }).catch(() => {}) : null;
   const newest = u.latest ? (u.latest.displayName || u.latest.fileName) : "";
   const yours = a.version ? `You have ${a.version}. ` : "";
+  if (u.state === "update" && !u.allow_distribution) {
+    return el("button", { class: "chip warn", title: `${yours}CurseForge has ${newest}. The author only allows downloads from CurseForge itself. Click to open its page.`, onclick: open }, "Newer on CurseForge");
+  }
   if (u.state === "update") {
     return el("button", { class: "chip hot", title: `${yours}CurseForge has ${newest}. Click to open its page.`, onclick: open }, "Update available");
   }
@@ -379,6 +455,21 @@ function flavorName(product, folder) {
   return folder.replace(/_/g, " ").trim();
 }
 
+// Update (when CurseForge has newer and the author allows it) and Undo (after an update).
+function rowActions(tab, a, info, backup) {
+  const busy = addonBusy[a.curse_id];
+  if (busy) return el("button", { class: "ghost small", disabled: true }, busy);
+  const u = a.curse_id && info.byId[a.curse_id];
+  const buttons = [];
+  if (u && u.state === "update" && u.allow_distribution && u.latest) {
+    buttons.push(el("button", { class: "ghost small primary", title: `Get ${u.latest.displayName || u.latest.fileName}`, onclick: () => updateAddon(tab, a) }, "Update"));
+  }
+  if (backup) {
+    buttons.push(el("button", { class: "ghost small", title: `Put back ${backup.version || "the version before the update"}`, onclick: () => undoAddon(tab, a, backup) }, "Undo"));
+  }
+  return buttons.length ? el("span", { class: "row-actions" }, ...buttons) : null;
+}
+
 function addonsPage() {
   const head = el("div", { class: "page-head" }, el("h2", {}, "Addons"),
     el("p", {}, "Your installed addons for each version of World of Warcraft, checked against CurseForge. One-click updates come next."));
@@ -393,6 +484,8 @@ function addonsPage() {
   addonTab = tab.product;
   const old = tab.addons.filter((a) => a.out_of_date).length;
   if (!addonUpdates[tab.product]) checkUpdates(tab);
+  if (!addonBackups[tab.product]) loadBackups(tab.product);
+  const backupOf = (a) => (addonBackups[tab.product] || []).find((b) => b.id === a.curse_id);
   const info = addonUpdates[tab.product] || { loading: true, byId: {} };
   const updates = Object.values(info.byId).filter((u) => u.state === "update").length;
   const query = addonFilter.trim().toLowerCase();
@@ -404,20 +497,22 @@ function addonsPage() {
       el("small", { title: a.folders.join(", ") },
         [a.version && `Version ${a.version}`, a.author, a.folders.length > 1 ? `${a.folders.length} folders` : a.folders[0]].filter(Boolean).join(" | "))),
     updateChip(a, info),
+    rowActions(tab, a, info, backupOf(a)),
     a.wago_id ? el("span", { class: "chip" }, "Wago") : null,
     a.out_of_date ? el("span", { class: "chip warn", title: "Made for an older version of the game. It may still work if you load out of date addons." }, "Out of date") : null);
 
   // Two accordions: addons Waygate can keep up to date (found on CurseForge with a file for
   // this game version), and the rest. Updates go to the top of the first.
   const stateOf = (a) => info.byId[a.curse_id]?.state;
-  const canUpdate = (a) => a.curse_id && (info.loading || info.error || ["update", "current", "unknown"].includes(stateOf(a)));
+  const allowed = (a) => info.byId[a.curse_id]?.allow_distribution !== false;
+  const canUpdate = (a) => a.curse_id && (info.loading || info.error || (["update", "current", "unknown"].includes(stateOf(a)) && allowed(a)));
   const can = shown.filter(canUpdate).sort((x, y) => (stateOf(y) === "update") - (stateOf(x) === "update"));
   const cannot = shown.filter((a) => !canUpdate(a));
   const groups = [
     { id: "can", title: "Waygate can update", extra: updates ? `${updates} with an update` : "", items: can,
-      note: "On CurseForge with a file for this version of the game. Waygate checks these and tells you when an update is out." },
+      note: "On CurseForge with a file for this version of the game. Press Update to get the newest; every update can be undone." },
     { id: "cannot", title: "Waygate can't update", extra: "", items: cannot,
-      note: "These don't say which CurseForge project they are (often because they came from Wago or were installed by hand), or CurseForge has nothing for this version of the game. Keep these up to date where you got them." },
+      note: "These don't say which CurseForge project they are (often because they came from Wago or were installed by hand), CurseForge has nothing for this version of the game, or their authors only allow downloads from CurseForge itself. Keep these up to date where you got them." },
   ].filter((g) => g.items.length);
   const sections = el("div", { class: "addon-groups" }, ...groups.map((g) => {
     const open = Boolean(query) || addonOpen[g.id];
@@ -451,6 +546,7 @@ function addonsPage() {
     el("p", { class: "summary" }, `${tab.addons.length} addons` + (old ? `, ${old} made for an older version of the game` : ", all made for this version of the game") +
       `. ${tab.addons.filter((a) => a.curse_id).length} come from CurseForge` +
       (info.loading ? ", checking for updates..." : info.error ? `. Update check: ${info.error}` : updates ? `, ${updates} with an update.` : ", none with an update.")),
+    addonMessage ? el("p", { class: "summary result" + (addonMessage.bad ? " bad" : "") }, addonMessage.text) : null,
     sections);
 }
 
@@ -941,7 +1037,8 @@ function aboutTab() {
         el("li", {}, "Games start with Battle.net's own launch command."),
         el("li", {}, "Installed games come from the Windows list of installed programs, versions from each game's own version file."),
         el("li", {}, "Characters come from the names of the game's character folders and the date each was last saved. Nothing inside those folders is opened, and your account's folder name is never kept or shown."),
-        el("li", {}, "Character details, affixes and seasons come from Raider.IO. News comes from Blizzard's public pages."))),
+        el("li", {}, "Character details, affixes and seasons come from Raider.IO. News comes from Blizzard's public pages."),
+        el("li", {}, "Addon updates are the only thing Waygate writes in a game folder: only inside Interface\\AddOns, only after you allow it, and every update can be undone."))),
     el("p", { class: "note" }, "Waygate's settings live in %APPDATA%\\Waygate\\settings.json."));
 }
 
@@ -957,7 +1054,13 @@ function gamesTab() {
   return el("div", { class: "tab-body" },
     el("div", { class: "block" },
       el("div", { class: "block-head" }, el("h3", {}, "Found on this PC")),
-      el("div", { class: "rows" }, ...rows.map(([label, value]) => el("div", { class: "row" }, el("b", {}, label), el("span", {}, value))))));
+      el("div", { class: "rows" }, ...rows.map(([label, value]) => el("div", { class: "row" }, el("b", {}, label), el("span", {}, value))))),
+    el("div", { class: "block" },
+      el("div", { class: "block-head" }, el("h3", {}, "Addon updates"),
+        el("p", {}, "Waygate only writes inside each game version's Interface\\AddOns folder, and keeps a copy of the old version so every update can be undone. The copies are in %LOCALAPPDATA%\\Waygate\\backups.")),
+      el("label", { class: "check" },
+        el("input", { type: "checkbox", checked: settings.addon_updates === true, onchange: (e) => save({ addon_updates: e.target.checked }) }),
+        el("span", {}, "Let Waygate update addons from CurseForge"))));
 }
 
 function render() {

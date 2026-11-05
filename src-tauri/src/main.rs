@@ -8,6 +8,7 @@ mod games;
 mod launch;
 mod online;
 mod settings;
+mod update;
 mod week;
 
 use serde::Serialize;
@@ -150,6 +151,52 @@ async fn addons() -> Vec<addons::Flavor> {
     .unwrap_or_default()
 }
 
+/// A game version's AddOns folder and the addon with that CurseForge id, worked
+/// out here from the disk rather than taken from the page.
+fn addon_target(product: &str, id: &str) -> Result<(std::path::PathBuf, Option<addons::Addon>), String> {
+    let found = games::scan();
+    let wow = found.games.iter().find(|g| g.uid == "wow").ok_or("World of Warcraft isn't installed.")?;
+    let (_, _, folder) = addons::version_folders(Path::new(&wow.install)).into_iter()
+        .find(|(p, _, _)| p == product).ok_or("That version of the game isn't installed.")?;
+    let versions: Vec<(String, String)> = wow.flavors.iter().map(|f| (f.product.clone(), f.version.clone())).collect();
+    let addon = addons::scan(Path::new(&wow.install), &versions).into_iter()
+        .find(|f| f.product == product)
+        .and_then(|f| f.addons.into_iter().find(|a| a.curse_id.as_deref() == Some(id)));
+    Ok((folder.join("Interface").join("AddOns"), addon))
+}
+
+/// Updates one addon from CurseForge (update.rs). Only after the player said yes in Waygate.
+#[tauri::command]
+async fn update_addon(product: String, id: String, file_id: u64) -> Result<update::Backup, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if settings::load().addon_updates != Some(true) {
+            return Err("Waygate isn't allowed to update addons. Turn it on in Settings.".to_string());
+        }
+        let (dir, addon) = addon_target(&product, &id)?;
+        let addon = addon.ok_or("That addon isn't installed for this version of the game.")?;
+        update::update(&dir, &product, &id, &addon.title, &addon.version, &addon.folders, file_id)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Puts back the version an addon had before its last update.
+#[tauri::command]
+async fn undo_addon(product: String, id: String) -> Result<update::Backup, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (dir, _) = addon_target(&product, &id)?;
+        update::undo(&dir, &product, &id)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Updates that can still be undone, for one game version.
+#[tauri::command]
+fn addon_backups(product: String) -> Vec<update::Backup> {
+    update::backups(&product)
+}
+
 /// Blizzard news for the installed games, newest first.
 #[tauri::command]
 async fn news() -> Vec<online::NewsItem> {
@@ -243,7 +290,7 @@ fn save_settings(settings: settings::Settings) -> Result<(), String> {
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            installed, play, open_folder, open_link, open_news, open_curseforge, updates, addons, addon_updates, news, this_week, found_characters, character, wow_token, realm_status, load_settings, save_settings
+            installed, play, open_folder, open_link, open_news, open_curseforge, updates, addons, addon_updates, update_addon, undo_addon, addon_backups, news, this_week, found_characters, character, wow_token, realm_status, load_settings, save_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running Waygate");

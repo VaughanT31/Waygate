@@ -303,6 +303,18 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .ghost:disabled { opacity: .5; cursor: default; }
 .ghost:disabled:hover { color: var(--soft); border-color: var(--line); }
 .ghost.primary:not(:disabled) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.ghost.small { padding: 5px 12px; font-size: 12px; }
+.row-actions { display: flex; gap: 6px; flex: none; }
+.summary.result { color: var(--green); }
+.summary.result.bad { color: #f0b67f; }
+.check { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 14px; color: var(--soft); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+dialog.ask { margin: auto; width: min(460px, calc(100vw - 48px)); padding: 22px 24px; border-radius: 12px; border: 1px solid var(--line);
+  background: rgba(14, 12, 24, .97); color: var(--text); box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .8); }
+dialog.ask::backdrop { background: rgba(4, 3, 8, .6); backdrop-filter: blur(2px); }
+dialog.ask h3 { font-size: 17px; font-weight: 600; }
+dialog.ask p { margin-top: 10px; font-size: 13.5px; line-height: 1.55; color: var(--soft); }
+.ask-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .summary { margin: 16px 40px 0; color: var(--dim); font-size: 13px; }
 .list { margin: 12px 40px 0; max-width: 980px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
 .list:empty { display: none; }
